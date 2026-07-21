@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Filament\Resources\Exams\Schemas;
+
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Schemas\Schema;
+
+class ExamForm
+{
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                TextInput::make('title')
+                    ->required(),
+                TextInput::make('duration')
+                    ->numeric()
+                    ->default(null),
+                Textarea::make('description')
+                    ->default(null)
+                    ->columnSpanFull(),
+            ]);
+    }
+}

@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Filament\Resources\Chaptercontents\Tables;
+
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
+
+class ChaptercontentsTable
+{
+    public static function configure(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('titulo')
+                    ->searchable(),
+                TextColumn::make('slug')
+                    ->searchable(),
+                ImageColumn::make('poster')
+                    ->label('Video')
+                    ->disk('public')
+                    ->height(60)
+                    ->url(fn ($record) => $record->video ? Storage::disk('public')->url($record->video) : null)
+                    ->openUrlInNewTab(),
+                TextColumn::make('chapter_id')
+                    ->numeric()
+                    ->sortable(),
+                TextColumn::make('audio')
+                    ->searchable(),
+                TextColumn::make('order')
+                    ->numeric()
+                    ->sortable(),
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                //
+            ])
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+}
