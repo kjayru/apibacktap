@@ -49,15 +49,42 @@ class InformationInfolist
                         TextEntry::make('explain1')->placeholder('-')->columnSpanFull(),
                         TextEntry::make('explain2')->placeholder('-')->columnSpanFull(),
                     ]),
+                // Las etiquetas repiten la pregunta tal cual la ve el aspirante en el
+                // formulario, y en el mismo orden, para poder cotejar respuesta a
+                // respuesta.
                 Section::make('Education')
-                    ->columns(3)
+                    ->columns(2)
                     ->schema([
-                        TextEntry::make('education.graduatehigh')->label('High school graduate')->placeholder('-'),
-                        TextEntry::make('education.hightschool')->label('High school')->placeholder('-'),
-                        TextEntry::make('education.graduatecollage')->label('College graduate')->placeholder('-'),
-                        TextEntry::make('education.activecard')->label('Active card')->placeholder('-'),
-                        TextEntry::make('education.firearm')->label('Firearm')->placeholder('-'),
-                        TextEntry::make('education.others')->label('Others')->placeholder('-'),
+                        TextEntry::make('education.graduatehigh')
+                            ->label('Did you graduate high school?')->placeholder('-'),
+                        TextEntry::make('education.hightschool')
+                            ->label('High school name')->placeholder('-'),
+                        TextEntry::make('education.highfrom')
+                            ->label('From')->placeholder('-'),
+                        TextEntry::make('education.hightto')
+                            ->label('To')->placeholder('-'),
+                        TextEntry::make('education.graduatecollage')
+                            ->label('Did you graduate college?')->placeholder('-'),
+                        TextEntry::make('education.collaganame')
+                            ->label('College name')->placeholder('-'),
+                        TextEntry::make('education.collagefrom')
+                            ->label('From')->placeholder('-'),
+                        TextEntry::make('education.collageto')
+                            ->label('To')->placeholder('-'),
+                        TextEntry::make('education.whatmayor')
+                            ->label('If yes, what major')->placeholder('-'),
+                        TextEntry::make('education.completed')
+                            ->label('Level completed')->placeholder('-'),
+                        TextEntry::make('education.activecard')
+                            ->label('Do you have an active security registration card?')->placeholder('-'),
+                        TextEntry::make('education.officer')
+                            ->label('If yes, what level security officer are you?')->placeholder('-'),
+                        TextEntry::make('education.firearm')
+                            ->label('If level 3, do you currently have a firearm?')->placeholder('-'),
+                        TextEntry::make('education.holster')
+                            ->label('If yes, what level holster are you currently using?')->placeholder('-'),
+                        TextEntry::make('education.others')
+                            ->label('Any other certifications')->placeholder('-')->columnSpanFull(),
                     ]),
                 Section::make('Military and disclaimer')
                     ->columns(3)
