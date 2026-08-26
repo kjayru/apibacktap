@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\UsersTaking\Pages;
 
 use App\Filament\Resources\UsersTaking\UsersTakingResource;
-use App\Models\ExamCourse;
 use App\Models\ExamQuestion;
 use App\Models\UserCourse;
 use App\Models\UserCourseExam;
@@ -175,17 +174,16 @@ class UserCourses extends Page implements HasTable
         ];
     }
 
+    /**
+     * No se ata al examen que exam_courses asigna hoy al curso: cuando ese examen se
+     * cambia, los intentos ya rendidos siguen apuntando al anterior y la consulta no
+     * encontraba nada, de ahí el 0% y el detalle vacío. user_course_exams ya cuelga del
+     * user_course, que es único por usuario y curso, así que basta con su último intento.
+     */
     private function getUserCourseExam(UserCourse $record): ?UserCourseExam
     {
-        $examId = ExamCourse::where('course_id', $record->course_id)->value('exam_id');
-
-        if (! $examId) {
-            return null;
-        }
-
         return UserCourseExam::query()
             ->where('user_course_id', $record->id)
-            ->where('exam_id', $examId)
             ->latest('id')
             ->first();
     }

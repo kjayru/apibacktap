@@ -11,11 +11,13 @@ use App\Filament\Resources\Users\Tables\UsersTable;
 use App\Filament\Resources\UsersTaking\Pages\ListUsersTaking;
 use App\Filament\Resources\UsersTaking\Pages\ViewUsersTaking;
 use App\Models\User;
+use App\Models\UserSign;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\Width;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
@@ -66,6 +68,19 @@ class UsersTakingResource extends Resource
                     ->icon('heroicon-o-academic-cap')
                     ->color('warning')
                     ->url(fn (User $record): string => static::getUrl('courses', ['record' => $record])),
+                // El admin anterior servía este documento en users/enroll/{id}.
+                Action::make('enrollment')
+                    ->label('Enrollment')
+                    ->icon('heroicon-o-document-text')
+                    ->color('gray')
+                    ->modalHeading('User enrollment')
+                    ->modalWidth(Width::FourExtraLarge)
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->modalContent(fn (User $record) => view('filament.user-courses.enrollment', [
+                        'sign' => UserSign::where('user_id', $record->getKey())->latest('id')->first(),
+                    ]))
+                    ->visible(fn (User $record): bool => UserSign::where('user_id', $record->getKey())->exists()),
                 ViewAction::make(),
                 EditAction::make(),
             ]);
