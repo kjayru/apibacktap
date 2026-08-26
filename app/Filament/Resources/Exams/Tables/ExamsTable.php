@@ -2,10 +2,11 @@
 
 namespace App\Filament\Resources\Exams\Tables;
 
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -18,25 +19,30 @@ class ExamsTable
             ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('title')
-                    ->searchable(),
-                TextColumn::make('duration')
-                    ->numeric()
+                    ->label('Exam name')
+                    ->searchable()
                     ->sortable(),
+                TextColumn::make('exam_questions_count')
+                    ->label('Questions')
+                    ->counts('examquestions'),
                 TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('Date')
+                    ->dateTime('M d, Y')
+                    ->sortable(),
             ])
             ->filters([
                 //
             ])
             ->recordActions([
-                ViewAction::make(),
+                Action::make('questions')
+                    ->label('Questions')
+                    ->icon('heroicon-o-queue-list')
+                    ->color('warning')
+                    ->url(fn ($record): string => route('filament.admin.resources.exam-questions.index', [
+                        'tableSearch' => $record->title,
+                    ])),
                 EditAction::make(),
+                DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
