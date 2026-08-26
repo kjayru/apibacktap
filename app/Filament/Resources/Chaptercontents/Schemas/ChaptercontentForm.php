@@ -16,8 +16,6 @@ class ChaptercontentForm
             ->components([
                 TextInput::make('titulo')
                     ->default(null),
-                TextInput::make('slug')
-                    ->default(null),
                 FileUpload::make('video')
                     ->disk('public')
                     ->directory('video')

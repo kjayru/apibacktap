@@ -33,8 +33,6 @@ class EventForm
                 DatePicker::make('end_date'),
                 TimePicker::make('start_hour')
                     ->required(),
-                TextInput::make('slug')
-                    ->required(),
             ]);
     }
 }

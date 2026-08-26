@@ -21,8 +21,6 @@ class ChapterForm
                     ->relationship('course', 'titulo')
                     ->searchable()
                     ->preload()->required(),
-                TextInput::make('slug')
-                    ->default(null),
                 TextInput::make('video')
                     ->default(null),
                 Textarea::make('reading')

@@ -15,8 +15,6 @@ class CategoryForm
             ->components([
                 TextInput::make('name')
                     ->required(),
-                TextInput::make('slug')
-                    ->required(),
                 FileUpload::make('card')
                     ->disk('public')
                     ->directory('card')

@@ -19,8 +19,6 @@ class CourseForm
                     ->required(),
                 TextInput::make('subtitulo')
                     ->default(null),
-                TextInput::make('slug')
-                    ->required(),
                 FileUpload::make('banner')
                     ->disk('public')
                     ->directory('banner')

@@ -16,6 +16,8 @@ class ChaptercontentsTable
     public static function configure(Table $table): Table
     {
         return $table
+            // El primero de la lista debe ser el último registro creado.
+            ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('titulo')
                     ->searchable(),

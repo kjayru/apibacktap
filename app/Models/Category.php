@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneratesSlug;
 use Illuminate\Database\Eloquent\Model;
 
 class Category extends Model
 {
+    use GeneratesSlug;
+
     protected $table = "categories";
 
     /** Columnas de la tabla; sin esto Filament falla al crear o editar. */

@@ -16,8 +16,6 @@ class IndustryForm
             ->components([
                 TextInput::make('titulo')
                     ->required(),
-                TextInput::make('slug')
-                    ->required(),
                 FileUpload::make('banner')
                     ->disk('public')
                     ->directory('banner')

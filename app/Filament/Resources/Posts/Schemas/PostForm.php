@@ -17,9 +17,6 @@ class PostForm
                 TextInput::make('titulo')
                     ->label('Title')
                     ->required(),
-                TextInput::make('slug')
-                    ->label('Slug')
-                    ->required(),
                 FileUpload::make('card')
                     ->label('Card')
                     ->disk('public')
