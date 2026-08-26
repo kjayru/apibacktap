@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\UsersTaking\Pages;
 
+use App\Filament\Resources\UsersTaking\Tables\UsersTakingTable;
 use App\Filament\Resources\UsersTaking\UsersTakingResource;
 use App\Models\ExamQuestion;
 use App\Models\UserCourse;
@@ -47,10 +48,14 @@ class UserCourses extends Page implements HasTable
                 ->where('user_id', $this->getRecord()->getKey())
                 ->with(['course.certification'])
                 ->latest('id'))
-            ->heading('Users courses')
+            // Al abrir el curso de un usuario hay que ver de quién se trata (#1631) y
+            // cuántos cursos lleva (#1635); en producción esa franja no estaba vacía.
+            ->heading(fn (): string => UsersTakingTable::fullName($this->getRecord()))
+            ->description(fn (): string => $this->getCoursesSummary())
             ->columns([
+                // Sin título, como en producción (#1636).
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label('')
                     ->sortable(),
                 TextColumn::make('course.titulo')
                     ->label('Course')
@@ -58,7 +63,7 @@ class UserCourses extends Page implements HasTable
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->label('Initial date')
-                    ->dateTime()
+                    ->dateTime('M j, Y H:i:s')
                     ->sortable(),
                 TextColumn::make('finish_date')
                     ->label('Finish date')
@@ -102,6 +107,20 @@ class UserCourses extends Page implements HasTable
             ]);
     }
 
+    /**
+     * Cursos comprados frente a terminados: el pedido son los dos números, porque un
+     * usuario puede haber pagado varios y tener sólo uno cerrado.
+     */
+    private function getCoursesSummary(): string
+    {
+        $userId = $this->getRecord()->getKey();
+
+        $purchased = UserCourse::where('user_id', $userId)->count();
+        $completed = UserCourse::where('user_id', $userId)->where('finalizado', 1)->count();
+
+        return "Purchased courses: {$purchased} · Completed courses: {$completed}";
+    }
+
     private function getFinishDate(UserCourse $record): ?string
     {
         if (
@@ -110,7 +129,7 @@ class UserCourses extends Page implements HasTable
             ((int) $record->intentos > 0 && ! (bool) $record->aprobado) ||
             ((bool) $record->reiniciado && filled($record->parent_id) && ! (bool) $record->aprobado)
         ) {
-            return $record->updated_at?->format('Y-m-d H:i:s');
+            return $record->updated_at?->format('M j, Y H:i:s');
         }
 
         return null;
