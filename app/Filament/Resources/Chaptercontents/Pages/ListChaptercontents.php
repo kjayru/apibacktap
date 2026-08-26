@@ -13,7 +13,9 @@ class ListChaptercontents extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            // Nombre del botón como en producción (#1581).
+            CreateAction::make()
+                ->label('Create Content'),
         ];
     }
 }

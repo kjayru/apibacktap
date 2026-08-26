@@ -8,7 +8,10 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 
 class CourseForm
 {
@@ -45,6 +48,14 @@ class CourseForm
                     ->columnSpanFull()
                     ->required()
                     ->markAsRequired(false),
+                // Al editar, el vídeo que ya está subido se ve aquí mismo (#1516): con el
+                // nombre del archivo no había forma de saber cuál era.
+                Text::make(fn ($record): HtmlString => new HtmlString(
+                    '<video src="' . e(Storage::disk('public')->url($record->video)) . '" controls preload="metadata"'
+                    . ' class="rounded-lg" style="max-width:320px"></video>'
+                ))
+                    ->visible(fn (?object $record): bool => filled($record?->video))
+                    ->columnSpanFull(),
                 FileUpload::make('video')
                     ->label('Video')
                     ->disk('public')
@@ -104,8 +115,9 @@ class CourseForm
                         ->orderBy('id')
                         ->pluck('name', 'id')
                         ->all())
-                    ->searchable()
-                    ->preload()
+                    // Sin buscador: son cuatro certificados y el desplegable con búsqueda
+                    // se abría hacia arriba y quedaba cortado (#1524).
+                    ->native(true)
                     ->required()
                     ->markAsRequired(false),
                 TextInput::make('resumen')
