@@ -6,6 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Disclaimer extends Model
 {
+
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'information_id',
+        'signature',
+        'fileid',
+        'datedisclamer',
+    ];
     public function information(){
         return $this->belongsTo(Information::class);
     }

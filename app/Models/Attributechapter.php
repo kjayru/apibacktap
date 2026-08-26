@@ -10,6 +10,13 @@ class Attributechapter extends Model
     use HasFactory;
     protected $table = "attributechapters";
 
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'chapter_id',
+        'attribute_id',
+        'valor',
+    ];
+
     public function attribute(){
         return $this->belongsTo(Attribute::class);
     }

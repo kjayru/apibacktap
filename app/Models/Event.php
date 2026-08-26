@@ -6,6 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Event extends Model
 {
+
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'title',
+        'price',
+        'duration',
+        'excerpt',
+        'description',
+        'start_date',
+        'end_date',
+        'start_hour',
+        'slug',
+    ];
     public static function meses($fecha){
       
         $f = explode("-",$fecha);

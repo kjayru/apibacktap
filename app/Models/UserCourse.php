@@ -11,6 +11,20 @@ use Illuminate\Support\Facades\DB;
 #[Fillable(['user_id', 'course_id', 'fecha_inicio', 'dias_activo', 'aprobado', 'intentos', 'reiniciado', 'caducado', 'finalizado', 'parent_id'])]
 class UserCourse extends Model
 {
+
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'user_id',
+        'course_id',
+        'fecha_inicio',
+        'dias_activo',
+        'aprobado',
+        'intentos',
+        'reiniciado',
+        'caducado',
+        'finalizado',
+        'parent_id',
+    ];
     use HasFactory;
 
     public function user(){

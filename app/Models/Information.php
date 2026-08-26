@@ -8,6 +8,35 @@ class Information extends Model
 {
     protected $table = "informations";
 
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'lastname',
+        'firstname',
+        'mi',
+        'date',
+        'address',
+        'apartment',
+        'city',
+        'state',
+        'zipcode',
+        'phone',
+        'email',
+        'birthday',
+        'socialnumber',
+        'placebirth',
+        'appliedpay',
+        'whichshift',
+        'whichday',
+        'citizen',
+        'authorized',
+        'when',
+        'explain1',
+        'explain2',
+        'worked',
+        'convicted',
+        'indictment',
+    ];
+
 
     public function education(){
         return $this->hasOne(Education::class);

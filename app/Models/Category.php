@@ -8,6 +8,16 @@ class Category extends Model
 {
     protected $table = "categories";
 
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'name',
+        'slug',
+        'card',
+        'banner',
+        'orden',
+        'parent_id',
+    ];
+
     public function industries(){
         return $this->hasMany(Industry::class);
     }

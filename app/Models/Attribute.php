@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Attribute extends Model
 {
+
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'name',
+    ];
     use HasFactory;
 
     public function attributercourses(){

@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Coupon extends Model
 {
+
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'cupon',
+        'monto_descuento',
+        'estado',
+    ];
     use HasFactory;
 
     public static function generarCupon(){

@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class ChapterQuiz extends Model
 {
+
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'chapter_id',
+        'quiz_id',
+        'question',
+    ];
     use HasFactory;
     public function chapter(){
         return $this->belongsTo(Chapter::class);

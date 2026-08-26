@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable(['user_course_id', 'chapter_id', 'quiz_result'])]
 class UserCourseChapter extends Model
 {
+
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'user_course_id',
+        'chapter_id',
+        'quiz_result',
+    ];
     use HasFactory;
     public function userCourse(){
         return $this->belongsTo(UserCourse::class);

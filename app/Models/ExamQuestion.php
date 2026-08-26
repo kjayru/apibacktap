@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class ExamQuestion extends Model
 {
+
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'exam_id',
+        'question',
+    ];
     use HasFactory;
 
     public function examquestionoptions(){
