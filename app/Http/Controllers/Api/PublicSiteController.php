@@ -270,7 +270,7 @@ class PublicSiteController extends Controller
             $inf->save();
 
             $education = new Education();
-            foreach (['graduatehigh', 'hightschool', 'highfrom', 'hightto', 'graduatecollage', 'collaganame', 'collagefrom', 'collageto', 'activecard', 'officer', 'firearm', 'holster', 'others'] as $field) {
+            foreach (['graduatehigh', 'hightschool', 'highfrom', 'hightto', 'graduatecollage', 'collaganame', 'collagefrom', 'collageto', 'whatmayor', 'completed', 'activecard', 'officer', 'firearm', 'holster', 'others'] as $field) {
                 $education->{$field} = $request->input($field);
             }
             $education->information_id = $inf->id;
