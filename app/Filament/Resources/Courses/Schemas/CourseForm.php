@@ -24,9 +24,14 @@ class CourseForm
                 FileUpload::make('banner')
                     ->disk('public')
                     ->directory('banner')
-                    ->image(),
-                TextInput::make('video')
-                    ->default(null),
+                    ->image()
+                    ->helperText('Medida sugerida: 1920 x 480 px.'),
+                FileUpload::make('video')
+                    ->disk('public')
+                    ->directory('video')
+                    ->acceptedFileTypes(['video/mp4', 'video/webm', 'video/ogg'])
+                    ->maxSize(512000)
+                    ->helperText('MP4, WebM u OGG. Peso máximo 500 MB.'),
                 TextInput::make('resumen')
                     ->default(null),
                 Textarea::make('contenido')
