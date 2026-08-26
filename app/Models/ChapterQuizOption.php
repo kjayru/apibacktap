@@ -16,7 +16,7 @@ class ChapterQuizOption extends Model
     ];
     use HasFactory;
     public function chapterquiz(){
-        return $this->belongsTo(ChapterQuiz::class);
+        return $this->belongsTo(ChapterQuiz::class, 'chapter_quiz_id');
     }
     public function userSelections()
     {

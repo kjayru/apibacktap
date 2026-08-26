@@ -17,6 +17,6 @@ class ExamQuestionOption extends Model
     use HasFactory;
 
     public function examquestion(){
-        return $this->belongsTo(ExamQuestion::class);
+        return $this->belongsTo(ExamQuestion::class, 'exam_question_id');
     }
 }
