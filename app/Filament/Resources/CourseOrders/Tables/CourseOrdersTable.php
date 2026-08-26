@@ -27,27 +27,8 @@ class CourseOrdersTable
                     ->label('Name'),
                 TextColumn::make('email')
                     ->label('Email'),
-                // Esta columna guarda dos formatos según la antigüedad de la orden:
-                // las recientes un JSON con course_id/slug/title, y las antiguas el
-                // carrito serializado con el modelo Course entero dentro. Del
-                // serializado se extrae el título por patrón: deserializar objetos
-                // de la base sería innecesariamente arriesgado.
-                TextColumn::make('course')
-                    ->label('Product')
-                    ->formatStateUsing(function ($state) {
-                        $texto = (string) $state;
-
-                        $datos = json_decode($texto, true);
-                        if (is_array($datos) && isset($datos['title'])) {
-                            return $datos['title'];
-                        }
-
-                        if (preg_match('/s:6:"titulo";s:\\d+:"([^"]*)"/', $texto, $m)) {
-                            return $m[1];
-                        }
-
-                        return $texto;
-                    }),
+                TextColumn::make('product_title')
+                    ->label('Product'),
                 TextColumn::make('price')
                     ->label('Price')
                     ->money('USD')
@@ -56,9 +37,14 @@ class CourseOrdersTable
                     ->label('Transaction'),
                 TextColumn::make('cupon')
                     ->label('Coupon'),
+                // Guarda el descuento en dólares, no el porcentaje del cupón.
                 TextColumn::make('cupon_mount')
-                    ->label('Coupon mount')
-                    ->formatStateUsing(fn ($state) => filled($state) ? "{$state}%" : null),
+                    ->label('Discount')
+                    ->money('USD')
+                    ->placeholder('-'),
+                TextColumn::make('amount')
+                    ->label('Paid')
+                    ->money('USD'),
                 TextColumn::make('created_at')
                     ->label('Date')
                     ->dateTime('M d, Y H:i')

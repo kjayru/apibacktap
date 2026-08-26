@@ -28,4 +28,26 @@ class CourseOrder extends Model
     public function user(){
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * La columna `course` guarda dos formatos según la antigüedad de la orden: las
+     * recientes un JSON con course_id/slug/title, y las antiguas el carrito serializado
+     * con el modelo Course entero dentro. Del serializado se saca el título por patrón:
+     * deserializar objetos guardados en base sería innecesariamente arriesgado.
+     */
+    public function getProductTitleAttribute(): string
+    {
+        $texto = (string) $this->course;
+
+        $datos = json_decode($texto, true);
+        if (is_array($datos) && isset($datos['title'])) {
+            return $datos['title'];
+        }
+
+        if (preg_match('/s:6:"titulo";s:\\d+:"([^"]*)"/', $texto, $m)) {
+            return $m[1];
+        }
+
+        return $texto;
+    }
 }
