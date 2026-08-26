@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Information\Pages;
 
 use App\Filament\Resources\Information\InformationResource;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListInformation extends ListRecords
@@ -12,8 +11,7 @@ class ListInformation extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [
-            CreateAction::make(),
-        ];
+        // Los aspirantes llegan por el formulario público, no se crean a mano.
+        return [];
     }
 }

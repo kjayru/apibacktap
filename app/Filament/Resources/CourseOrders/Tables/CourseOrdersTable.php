@@ -4,7 +4,6 @@ namespace App\Filament\Resources\CourseOrders\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -14,50 +13,63 @@ class CourseOrdersTable
     public static function configure(Table $table): Table
     {
         return $table
-            // El primero de la lista debe ser el último registro creado.
+            // El primero de la lista debe ser la última orden pagada.
             ->defaultSort('id', 'desc')
+            // Sin buscador en esta sección, a petición del cliente.
+            ->searchable(false)
             ->columns([
-                TextColumn::make('user_id')
-                    ->numeric()
+                TextColumn::make('id')
+                    ->label('Order Nº')
                     ->sortable(),
-                TextColumn::make('name')
-                    ->searchable(),
-                TextColumn::make('email')
-                    ->label('Email address')
-                    ->searchable(),
-                TextColumn::make('price')
-                    ->searchable(),
                 TextColumn::make('order_id')
-                    ->searchable(),
-                TextColumn::make('currency')
-                    ->searchable(),
-                TextColumn::make('amount')
-                    ->searchable(),
+                    ->label('Order ID'),
+                TextColumn::make('name')
+                    ->label('Name'),
+                TextColumn::make('email')
+                    ->label('Email'),
+                // Esta columna guarda dos formatos según la antigüedad de la orden:
+                // las recientes un JSON con course_id/slug/title, y las antiguas el
+                // carrito serializado con el modelo Course entero dentro. Del
+                // serializado se extrae el título por patrón: deserializar objetos
+                // de la base sería innecesariamente arriesgado.
+                TextColumn::make('course')
+                    ->label('Product')
+                    ->formatStateUsing(function ($state) {
+                        $texto = (string) $state;
+
+                        $datos = json_decode($texto, true);
+                        if (is_array($datos) && isset($datos['title'])) {
+                            return $datos['title'];
+                        }
+
+                        if (preg_match('/s:6:"titulo";s:\\d+:"([^"]*)"/', $texto, $m)) {
+                            return $m[1];
+                        }
+
+                        return $texto;
+                    }),
+                TextColumn::make('price')
+                    ->label('Price')
+                    ->money('USD')
+                    ->sortable(),
                 TextColumn::make('txn_id')
-                    ->searchable(),
-                TextColumn::make('checkout_session_id')
-                    ->searchable(),
-                TextColumn::make('payment_status')
-                    ->searchable(),
+                    ->label('Transaction'),
                 TextColumn::make('cupon')
-                    ->searchable(),
+                    ->label('Coupon'),
                 TextColumn::make('cupon_mount')
-                    ->searchable(),
+                    ->label('Coupon mount')
+                    ->formatStateUsing(fn ($state) => filled($state) ? "{$state}%" : null),
                 TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('Date')
+                    ->dateTime('M d, Y H:i')
+                    ->sortable(),
             ])
             ->filters([
                 //
             ])
+            // Las órdenes pagadas no se editan: solo se consultan.
             ->recordActions([
                 ViewAction::make(),
-                EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
