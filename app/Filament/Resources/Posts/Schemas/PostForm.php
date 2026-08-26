@@ -24,20 +24,22 @@ class PostForm
                     ->label('Card')
                     ->disk('public')
                     ->directory('card')
-                    ->image(),
+                    ->image()
+                    ->helperText('Medida sugerida: 600 x 400 px.'),
                 FileUpload::make('banner')
                     ->label('Banner')
                     ->disk('public')
                     ->directory('banner')
                     ->image()
-                    ->required(),
-                RichEditor::make('contenido')
-                    ->label('Content')
                     ->required()
-                    ->columnSpanFull(),
+                    ->helperText('Medida sugerida: 1920 x 480 px.'),
                 Textarea::make('resumen')
                     ->label('Summary')
                     ->default(null)
+                    ->columnSpanFull(),
+                RichEditor::make('contenido')
+                    ->label('Content')
+                    ->required()
                     ->columnSpanFull(),
             ]);
     }
