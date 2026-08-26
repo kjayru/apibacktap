@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Industries\Schemas;
 
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -15,22 +16,30 @@ class IndustryForm
         return $schema
             ->components([
                 TextInput::make('titulo')
+                    ->label('Title')
                     ->required(),
                 FileUpload::make('banner')
+                    ->label('Banner')
                     ->disk('public')
                     ->directory('banner')
-                    ->image(),
+                    ->image()
+                    ->helperText('Medida sugerida: 1920 x 480 px.'),
                 FileUpload::make('card')
+                    ->label('Card')
                     ->disk('public')
                     ->directory('card')
-                    ->image(),
-                Textarea::make('contenido')
+                    ->image()
+                    ->helperText('Medida sugerida: 600 x 400 px.'),
+                RichEditor::make('contenido')
+                    ->label('Content')
                     ->required()
                     ->columnSpanFull(),
                 TextInput::make('orden')
+                    ->label('Order')
                     ->numeric()
                     ->default(null),
                 Select::make('category_id')
+                    ->label('Category')
                     ->relationship('Category', 'name')
                     ->searchable()
                     ->preload()->required(),
