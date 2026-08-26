@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ChapterQuizzes\Schemas;
 
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
@@ -12,12 +13,14 @@ class ChapterQuizForm
     {
         return $schema
             ->components([
-                TextInput::make('chapter_id')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('quiz_id')
-                    ->numeric()
-                    ->default(null),
+                Select::make('chapter_id')
+                    ->relationship('chapter', 'title')
+                    ->searchable()
+                    ->preload()->required(),
+                Select::make('quiz_id')
+                    ->relationship('quiz', 'title')
+                    ->searchable()
+                    ->preload(),
                 Textarea::make('question')
                     ->default(null)
                     ->columnSpanFull(),

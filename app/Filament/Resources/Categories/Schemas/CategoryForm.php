@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Categories\Schemas;
 
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
@@ -27,8 +28,10 @@ class CategoryForm
                 TextInput::make('orden')
                     ->numeric()
                     ->default(null),
-                TextInput::make('parent_id')
-                    ->default(null),
+                Select::make('parent_id')
+                    ->relationship('parent', 'name')
+                    ->searchable()
+                    ->preload(),
             ]);
     }
 }

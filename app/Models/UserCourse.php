@@ -329,4 +329,9 @@ class UserCourse extends Model
         //user_course_exam_result
         return $porcentaje;
     }
+
+    public function parent()
+    {
+        return $this->belongsTo(UserCourse::class, 'parent_id');
+    }
 }

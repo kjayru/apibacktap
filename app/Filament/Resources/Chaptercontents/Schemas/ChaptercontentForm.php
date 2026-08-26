@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Chaptercontents\Schemas;
 
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
@@ -30,9 +31,10 @@ class ChaptercontentForm
                     ->label('Content')
                     ->required()
                     ->columnSpanFull(),
-                TextInput::make('chapter_id')
-                    ->required()
-                    ->numeric(),
+                Select::make('chapter_id')
+                    ->relationship('chapter', 'title')
+                    ->searchable()
+                    ->preload()->required(),
                 FileUpload::make('audio')
                     ->disk('public')
                     ->directory('audio')

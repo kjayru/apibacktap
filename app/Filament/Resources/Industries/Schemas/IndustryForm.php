@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Industries\Schemas;
 
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
@@ -31,9 +32,10 @@ class IndustryForm
                 TextInput::make('orden')
                     ->numeric()
                     ->default(null),
-                TextInput::make('category_id')
-                    ->required()
-                    ->numeric(),
+                Select::make('category_id')
+                    ->relationship('Category', 'name')
+                    ->searchable()
+                    ->preload()->required(),
             ]);
     }
 }

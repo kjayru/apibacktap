@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CourseOrders\Schemas;
 
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
@@ -15,9 +16,10 @@ class CourseOrderForm
                 Textarea::make('course')
                     ->required()
                     ->columnSpanFull(),
-                TextInput::make('user_id')
-                    ->required()
-                    ->numeric(),
+                Select::make('user_id')
+                    ->relationship('user', 'name')
+                    ->searchable()
+                    ->preload()->required(),
                 TextInput::make('name')
                     ->required(),
                 TextInput::make('email')
