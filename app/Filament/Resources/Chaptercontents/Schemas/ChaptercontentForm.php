@@ -22,11 +22,14 @@ class ChaptercontentForm
                     ->disk('public')
                     ->directory('video')
                     ->acceptedFileTypes(['video/mp4', 'video/webm', 'video/ogg'])
+                    ->maxSize(512000)
+                    ->helperText('MP4, WebM u OGG. Peso máximo 500 MB.')
                     ->required(),
                 FileUpload::make('poster')
                     ->disk('public')
                     ->directory('poster')
-                    ->image(),
+                    ->image()
+                    ->helperText('Medida sugerida: 1280 x 720 px.'),
                 RichEditor::make('contenido')
                     ->label('Content')
                     ->required()
@@ -38,7 +41,9 @@ class ChaptercontentForm
                 FileUpload::make('audio')
                     ->disk('public')
                     ->directory('audio')
-                    ->acceptedFileTypes(['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg']),
+                    ->acceptedFileTypes(['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'])
+                    ->maxSize(512000)
+                    ->helperText('MP3, WAV u OGG. Peso máximo 500 MB.'),
                 TextInput::make('order')
                     ->numeric()
                     ->default(null),
