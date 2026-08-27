@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\CartException;
 use App\Http\Controllers\Controller;
 use App\Models\Chapter;
 use App\Models\Chaptercontent;
@@ -10,17 +11,24 @@ use App\Models\UserCourse;
 use App\Models\UserCourseChapter;
 use App\Models\UserCourseChapterContent;
 use App\Models\UserSign;
-use Carbon\Carbon;
+use App\Services\CourseAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class LearnController extends Controller
 {
+    public function __construct(private readonly CourseAccessService $access)
+    {
+    }
+
     public function myCourses(Request $request): JsonResponse
     {
         $userId = $request->user()->id;
         $userCourses = UserCourse::with('course')->where('user_id', $userId)->latest('id')->get();
+
+        // Al listar se caducan las matrículas vencidas, como hacía el sitio anterior.
+        $userCourses->each(fn (UserCourse $userCourse) => $this->access->expireIfDue($userCourse));
 
         return $this->ok($userCourses->map(function (UserCourse $userCourse) use ($userId) {
             $course = $userCourse->course;
@@ -35,39 +43,29 @@ class LearnController extends Controller
                     'level' => $course->nivel,
                 ],
                 'progress_percent' => UserCourseChapter::completeChapter($userId, $course->id, $userCourse->id),
-                'days_left' => $userCourse->dias_activo !== null ? max(0, (int) round(UserCourse::dayleft($userCourse->id))) : null,
-                'approved' => (bool) $userCourse->aprobado,
-                'finished' => (bool) $userCourse->finalizado,
-                'expired' => (bool) $userCourse->caducado,
-            ];
+                // Sólo la matrícula más reciente de cada curso es la que se puede cursar.
+                'is_current' => $userCourse->id === $this->access->latestEnrollment($userCourse->user, $course)?->id,
+            ] + $this->access->state($userCourse);
         })->values());
     }
 
     public function courseDetail(Request $request, Course $course): JsonResponse
     {
-        $userCourse = $this->findUserCourse($request, $course);
+        $userCourse = $this->access->resolve($request->user(), $course);
 
         $chapters = Chapter::where('course_id', $course->id)->orderBy('order')->get();
         $completedChapterIds = UserCourseChapter::where('user_course_id', $userCourse->id)
             ->pluck('id', 'chapter_id');
 
         $previousCompleted = true;
-        $chapterPayload = $chapters->values()->map(function (Chapter $chapter, int $index) use ($userCourse, $completedChapterIds, &$previousCompleted) {
+        $chapterPayload = $chapters->values()->map(function (Chapter $chapter) use ($userCourse, $completedChapterIds, &$previousCompleted) {
             $hasQuiz = $chapter->chapterquizzes()->exists() || filled($chapter->quiz);
             $totalContents = $chapter->chaptercontents()->count();
             $completedContentIds = $completedChapterIds->has($chapter->id)
                 ? UserCourseChapterContent::where('user_course_chapter_id', $completedChapterIds[$chapter->id])->pluck('content_id')
                 : collect();
-            $completedContents = $completedContentIds->count();
 
-            $quizPassed = UserCourseChapter::where('user_course_id', $userCourse->id)
-                ->where('chapter_id', $chapter->id)
-                ->where('quiz_result', 1)
-                ->exists();
-
-            $contentsDone = $totalContents > 0 && $completedContents >= $totalContents;
-            $completed = $contentsDone && (! $hasQuiz || $quizPassed);
-
+            $completed = $this->access->chapterCompleted($userCourse, $chapter);
             $status = $completed ? 'completed' : ($previousCompleted ? 'active' : 'locked');
             $previousCompleted = $completed;
 
@@ -82,7 +80,7 @@ class LearnController extends Controller
                 'has_quiz' => $hasQuiz,
                 'status' => $status,
                 'contents_total' => $totalContents,
-                'contents_completed' => $completedContents,
+                'contents_completed' => $completedContentIds->count(),
                 'contents' => $chapter->chaptercontents->map(fn (Chaptercontent $content) => [
                     'id' => $content->id,
                     'title' => $content->titulo,
@@ -103,16 +101,13 @@ class LearnController extends Controller
                 'instructor' => $course->responsable,
             ],
             'progress_percent' => UserCourseChapter::completeChapter($request->user()->id, $course->id, $userCourse->id),
-            'days_left' => $userCourse->dias_activo !== null ? max(0, (int) round(UserCourse::dayleft($userCourse->id))) : null,
-            'approved' => (bool) $userCourse->aprobado,
-            'finished' => (bool) $userCourse->finalizado,
             'chapters' => $chapterPayload,
-        ]);
+        ] + $this->access->state($userCourse));
     }
 
     public function contentDetail(Request $request, Course $course, Chapter $chapter, Chaptercontent $content): JsonResponse
     {
-        $this->findUserCourse($request, $course);
+        $this->resolveChapter($request, $course, $chapter, $content);
 
         return $this->ok([
             'id' => $content->id,
@@ -128,7 +123,7 @@ class LearnController extends Controller
 
     public function completeContent(Request $request, Course $course, Chapter $chapter, Chaptercontent $content): JsonResponse
     {
-        $userCourse = $this->findUserCourse($request, $course);
+        $userCourse = $this->resolveChapter($request, $course, $chapter, $content);
 
         $userCourseChapter = UserCourseChapter::firstOrCreate([
             'user_course_id' => $userCourse->id,
@@ -145,35 +140,35 @@ class LearnController extends Controller
         ]);
     }
 
+    /** Reglas 6 y 7: reinicio único con 15 días tras agotar los intentos del examen. */
     public function restartCourse(Request $request, Course $course): JsonResponse
     {
-        $userCourse = $this->findUserCourse($request, $course);
+        $userCourse = $this->access->resolve($request->user(), $course);
 
-        if ((int) $userCourse->aprobado === 1) {
-            return response()->json(['success' => false, 'message' => 'You already have the course approved.'], 422);
+        try {
+            $newUserCourse = $this->access->restart($userCourse);
+        } catch (CartException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
-        if (UserCourse::where('parent_id', $userCourse->id)->exists()) {
-            return response()->json(['success' => false, 'message' => 'The course has already been restarted.'], 422);
-        }
-
-        $newUserCourse = UserCourse::create([
-            'user_id' => $request->user()->id,
-            'course_id' => $course->id,
-            'fecha_inicio' => Carbon::now(),
-            'dias_activo' => $userCourse->dias_activo,
-            'reiniciado' => 1,
-            'parent_id' => $userCourse->id,
-        ]);
-
-        return $this->ok(['message' => 'Course has been restarted.', 'user_course_id' => $newUserCourse->id]);
+        return $this->ok([
+            'message' => 'Course has been restarted. You have ' . CourseAccessService::RETAKE_DAYS . ' days to complete it.',
+            'user_course_id' => $newUserCourse->id,
+        ] + $this->access->state($newUserCourse));
     }
 
     public function verifyAccess(Request $request, Course $course): JsonResponse
     {
-        $hasAccess = UserCourse::where('user_id', $request->user()->id)->where('course_id', $course->id)->exists();
+        $userCourse = $this->access->latestEnrollment($request->user(), $course);
 
-        return $this->ok(['has_access' => $hasAccess]);
+        return $this->ok([
+            'has_access' => $userCourse !== null && (int) $userCourse->caducado !== 1,
+            'reason' => match (true) {
+                $userCourse === null => 'not_enrolled',
+                (int) $userCourse->caducado === 1 => 'expired',
+                default => null,
+            },
+        ] + ($userCourse ? $this->access->state($userCourse) : []));
     }
 
     public function signStatus(Request $request): JsonResponse
@@ -209,11 +204,14 @@ class LearnController extends Controller
         return $this->ok(['signed' => true, 'signed_at' => $sign->created_at?->toISOString()], 201);
     }
 
-    private function findUserCourse(Request $request, Course $course): UserCourse
+    /** Regla 1: el contenido de un capítulo sólo se sirve con los anteriores aprobados. */
+    private function resolveChapter(Request $request, Course $course, Chapter $chapter, Chaptercontent $content): UserCourse
     {
-        $userCourse = UserCourse::where('user_id', $request->user()->id)->where('course_id', $course->id)->first();
+        abort_if((int) $chapter->course_id !== (int) $course->id, 404, 'Chapter not found in this course.');
+        abort_if((int) $content->chapter_id !== (int) $chapter->id, 404, 'Content not found in this chapter.');
 
-        abort_if(! $userCourse, 403, 'You do not have access to this course.');
+        $userCourse = $this->access->resolve($request->user(), $course);
+        $this->access->assertChapterUnlocked($userCourse, $course, $chapter);
 
         return $userCourse;
     }

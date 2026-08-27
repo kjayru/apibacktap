@@ -42,9 +42,11 @@ class UserCoursesTable
                 IconColumn::make('aprobado')
                     ->label('Approved')
                     ->boolean(),
-                IconColumn::make('intentos')
-                    ->label('Attempted')
-                    ->boolean(),
+                // `intentos` es el número de intentos fallidos del examen final (máximo 3),
+                // no un booleano: pintarlo como toggle lo pisaba a 0/1 desde el admin.
+                \Filament\Tables\Columns\TextColumn::make('intentos')
+                    ->label('Exam attempts')
+                    ->formatStateUsing(fn ($state): string => (int) $state . ' / ' . \App\Services\CourseAccessService::MAX_EXAM_ATTEMPTS),
                 IconColumn::make('reiniciado')
                     ->label('Restarted')
                     ->boolean(),

@@ -14,10 +14,15 @@ class CertificateController extends Controller
 {
     public function show(Request $request, Course $course): Response
     {
-        $userCourse = UserCourse::where('user_id', $request->user()->id)->where('course_id', $course->id)->first();
+        // El certificado es de la matrícula aprobada, aunque después el alumno haya vuelto
+        // a comprar el curso y su última matrícula esté en curso o caducada.
+        $userCourse = UserCourse::where('user_id', $request->user()->id)
+            ->where('course_id', $course->id)
+            ->where('aprobado', 1)
+            ->latest('id')
+            ->first();
 
-        abort_if(! $userCourse, 403, 'You do not have access to this course.');
-        abort_if((int) $userCourse->aprobado !== 1, 422, 'You must pass the final exam before downloading the certificate.');
+        abort_if(! $userCourse, 422, 'You must pass the final exam before downloading the certificate.');
 
         $certificationImage = null;
         if ($course->certification && filled($course->certification->image)) {

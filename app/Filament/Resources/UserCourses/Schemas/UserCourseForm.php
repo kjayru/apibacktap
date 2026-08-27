@@ -26,7 +26,12 @@ class UserCourseForm
                 TextInput::make('dias_activo')
                     ->default(null),
                 Toggle::make('aprobado'),
-                Toggle::make('intentos'),
+                \Filament\Forms\Components\TextInput::make('intentos')
+                    ->label('Exam attempts used')
+                    ->numeric()
+                    ->minValue(0)
+                    ->maxValue(\App\Services\CourseAccessService::MAX_EXAM_ATTEMPTS)
+                    ->default(0),
                 Toggle::make('reiniciado'),
                 Toggle::make('caducado'),
                 Toggle::make('finalizado'),

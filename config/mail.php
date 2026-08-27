@@ -115,4 +115,17 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Buzón de TAP
+    |--------------------------------------------------------------------------
+    |
+    | Dirección a la que llegan los avisos del sitio: formularios de contacto,
+    | solicitudes de empleo, el 8850 y las compras de cursos. Se lee aquí y no
+    | con env() en el código para que sobreviva a config:cache.
+    |
+    */
+
+    'contact' => env('MAIL_CONTACT'),
+
 ];

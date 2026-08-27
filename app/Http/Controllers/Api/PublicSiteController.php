@@ -477,7 +477,7 @@ class PublicSiteController extends Controller
 
     private function sendRawNotification(string $subject, string $body): void
     {
-        $to = env('MAIL_CONTACT');
+        $to = config('mail.contact');
 
         if (! filled($to)) {
             return;
