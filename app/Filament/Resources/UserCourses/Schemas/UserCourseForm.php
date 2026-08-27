@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\UserCourses\Schemas;
 
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
@@ -12,24 +13,32 @@ class UserCourseForm
     {
         return $schema
             ->components([
-                TextInput::make('user_id')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('course_id')
-                    ->required()
-                    ->numeric(),
+                Select::make('user_id')
+                    ->relationship('user', 'name')
+                    ->searchable()
+                    ->preload()->required(),
+                Select::make('course_id')
+                    ->relationship('course', 'titulo')
+                    ->searchable()
+                    ->preload()->required(),
                 TextInput::make('fecha_inicio')
                     ->required(),
                 TextInput::make('dias_activo')
                     ->default(null),
                 Toggle::make('aprobado'),
-                Toggle::make('intentos'),
+                \Filament\Forms\Components\TextInput::make('intentos')
+                    ->label('Exam attempts used')
+                    ->numeric()
+                    ->minValue(0)
+                    ->maxValue(\App\Services\CourseAccessService::MAX_EXAM_ATTEMPTS)
+                    ->default(0),
                 Toggle::make('reiniciado'),
                 Toggle::make('caducado'),
                 Toggle::make('finalizado'),
-                TextInput::make('parent_id')
-                    ->numeric()
-                    ->default(null),
+                Select::make('parent_id')
+                    ->relationship('parent', 'name')
+                    ->searchable()
+                    ->preload(),
             ]);
     }
 }

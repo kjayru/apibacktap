@@ -3,38 +3,47 @@
 namespace App\Filament\Resources\Events\Schemas;
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TimePicker;
 use Filament\Schemas\Schema;
 
 class EventForm
 {
+    /**
+     * Los mismos campos que el admin anterior: un evento de formación ocurre un día
+     * concreto, así que no hay rango de fechas sino "Event date" (#1399, #1400), y
+     * desaparece el resumen (#1397). La descripción se escribe con editor, como con
+     * el CKEditor de antes, y la API ya la envía al front como description_html
+     * (#1398, #1402).
+     */
     public static function configure(Schema $schema): Schema
     {
         return $schema
             ->components([
                 TextInput::make('title')
+                    ->label('Title')
                     ->required(),
                 TextInput::make('price')
+                    ->label('Price')
                     ->required()
                     ->numeric()
                     ->prefix('$'),
                 TextInput::make('duration')
+                    ->label('Duration hours')
                     ->required()
                     ->numeric(),
-                TextInput::make('excerpt')
-                    ->default(null),
-                Textarea::make('description')
-                    ->default(null)
-                    ->columnSpanFull(),
                 DatePicker::make('start_date')
+                    ->label('Event date')
+                    ->native(false)
+                    ->displayFormat('M d, Y')
                     ->required(),
-                DatePicker::make('end_date'),
                 TimePicker::make('start_hour')
+                    ->label('Start time')
                     ->required(),
-                TextInput::make('slug')
-                    ->required(),
+                RichEditor::make('description')
+                    ->label('Description')
+                    ->columnSpanFull(),
             ]);
     }
 }

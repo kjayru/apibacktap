@@ -23,11 +23,11 @@ class EventResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
-    protected static ?string $navigationLabel = 'Training';
+    protected static ?string $navigationLabel = 'Training event list';
 
-    protected static ?string $modelLabel = 'Training';
+    protected static ?string $modelLabel = 'Event';
 
-    protected static ?string $pluralModelLabel = 'Training';
+    protected static ?string $pluralModelLabel = 'Training event list';
 
     protected static string|UnitEnum|null $navigationGroup = 'Operations';
 

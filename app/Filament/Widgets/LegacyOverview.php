@@ -3,7 +3,9 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Contacts\ContactResource;
+use App\Filament\Resources\CourseOrders\CourseOrderResource;
 use App\Filament\Resources\Events\EventResource;
+use App\Filament\Resources\Information\InformationResource;
 use App\Models\Contact;
 use App\Models\CourseOrder;
 use App\Models\Event;
@@ -36,13 +38,15 @@ class LegacyOverview extends StatsOverviewWidget
                 ->description('View')
                 ->descriptionIcon(Heroicon::ArrowRightCircle)
                 ->icon(Heroicon::OutlinedShoppingBag)
-                ->color('warning'),
+                ->color('warning')
+                ->url(CourseOrderResource::getUrl()),
 
             Stat::make('Applicants', Information::query()->count())
                 ->description('View')
                 ->descriptionIcon(Heroicon::ArrowRightCircle)
                 ->icon(Heroicon::OutlinedUserPlus)
-                ->color('danger'),
+                ->color('danger')
+                ->url(InformationResource::getUrl()),
 
             Stat::make('Contacts', Contact::query()->count())
                 ->description('View')

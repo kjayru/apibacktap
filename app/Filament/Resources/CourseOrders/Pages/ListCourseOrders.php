@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\CourseOrders\Pages;
 
 use App\Filament\Resources\CourseOrders\CourseOrderResource;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListCourseOrders extends ListRecords
@@ -12,8 +11,7 @@ class ListCourseOrders extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [
-            CreateAction::make(),
-        ];
+        // Las órdenes las genera el checkout, no se crean a mano.
+        return [];
     }
 }

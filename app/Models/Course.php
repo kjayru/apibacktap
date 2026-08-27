@@ -2,10 +2,33 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneratesSlug;
 use Illuminate\Database\Eloquent\Model;
 
 class Course extends Model
 {
+    use GeneratesSlug;
+
+
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'titulo',
+        'subtitulo',
+        'slug',
+        'banner',
+        'video',
+        'resumen',
+        'contenido',
+        'precio',
+        'disponible',
+        'capitulos',
+        'audio',
+        'nivel',
+        'language',
+        'responsable',
+        'tiempovalido',
+        'certification_id',
+    ];
     public function chapters(){
         return $this->hasMany(Chapter::class);
     }

@@ -6,6 +6,8 @@ use App\Exceptions\CartException;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseOrder;
+use App\Models\Event;
+use App\Models\Order;
 use App\Services\CartPricingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -84,11 +86,83 @@ class CheckoutController extends Controller
         return response()->json(['success' => true, 'data' => ['checkout_url' => $session->url]]);
     }
 
+    /**
+     * Pago de un curso presencial del calendario. Va aparte del carrito porque no es lo
+     * mismo: un evento no se cursa online, no lleva cupón ni matrícula, y su cobro se
+     * guarda en `orders`, que es donde lo dejaba el sitio anterior.
+     */
+    public function createEventSession(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['event_slug' => ['required', 'string']]);
+
+        $event = Event::where('slug', $validated['event_slug'])->firstOrFail();
+        $user = $request->user();
+
+        $price = (float) $event->price;
+
+        if ($price <= 0) {
+            return response()->json(['success' => false, 'message' => 'This training event is not available for online payment.'], 422);
+        }
+
+        Stripe::setApiKey(config('services.stripe.secret'));
+
+        $frontendUrl = rtrim(config('app.frontend_url'), '/');
+
+        $session = StripeCheckoutSession::create([
+            'mode' => 'payment',
+            'customer_email' => $user->email,
+            'line_items' => [[
+                'quantity' => 1,
+                'price_data' => [
+                    'currency' => 'usd',
+                    'unit_amount' => (int) round($price * 100),
+                    'product_data' => [
+                        'name' => $event->title,
+                    ],
+                ],
+            ]],
+            'success_url' => $frontendUrl . '/cart/success?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url' => $frontendUrl . '/cart/cancel',
+            'metadata' => [
+                'kind' => 'event',
+                'user_id' => (string) $user->id,
+                'event_id' => (string) $event->id,
+            ],
+        ]);
+
+        Order::create([
+            'name' => $user->name,
+            'email' => $user->email,
+            'item_number' => $event->id,
+            'item_name' => $event->title,
+            'item_price' => $price,
+            'item_price_currency' => 'usd',
+            'paid_amount' => $price,
+            'paid_amount_currency' => 'usd',
+            // `orders.txn_id` no admite nulos y el identificador del cobro no existe
+            // hasta que Stripe confirma, así que se guarda de momento el de la sesión
+            // —igual que hacía el sitio anterior— y el webhook lo sustituye.
+            'txn_id' => $session->id,
+            'checkout_session_id' => $session->id,
+            'payment_status' => 'pending',
+            'user_id' => $user->id,
+        ]);
+
+        return response()->json(['success' => true, 'data' => ['checkout_url' => $session->url]]);
+    }
+
     public function showBySession(Request $request): JsonResponse
     {
         $validated = $request->validate(['session_id' => ['required', 'string']]);
 
         $order = CourseOrder::where('checkout_session_id', $validated['session_id'])->first();
+
+        // La pantalla de "compra correcta" es la misma para un curso online y para un
+        // curso presencial, así que si la sesión no es de carrito se busca entre los
+        // cobros de eventos antes de darla por inexistente.
+        if (! $order) {
+            return $this->showEventOrderBySession($request, $validated['session_id']);
+        }
 
         abort_if(! $order, 404, 'Order not found.');
         abort_if($order->user_id !== $request->user()->id, 403, 'You do not have access to this order.');
@@ -101,6 +175,25 @@ class CheckoutController extends Controller
             'course_slug' => $course['slug'] ?? null,
             'amount' => $order->amount,
             'currency' => $order->currency,
+            'payment_status' => $order->payment_status,
+        ]]);
+    }
+
+    private function showEventOrderBySession(Request $request, string $sessionId): JsonResponse
+    {
+        $order = Order::where('checkout_session_id', $sessionId)->first();
+
+        abort_if(! $order, 404, 'Order not found.');
+        abort_if($order->user_id !== $request->user()->id, 403, 'You do not have access to this order.');
+
+        $event = Event::find($order->item_number);
+
+        return response()->json(['success' => true, 'data' => [
+            'id' => $order->id,
+            'course_title' => $order->item_name,
+            'course_slug' => $event?->slug,
+            'amount' => $order->paid_amount,
+            'currency' => $order->paid_amount_currency,
             'payment_status' => $order->payment_status,
         ]]);
     }

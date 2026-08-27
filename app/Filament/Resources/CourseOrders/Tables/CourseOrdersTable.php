@@ -4,7 +4,6 @@ namespace App\Filament\Resources\CourseOrders\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -14,48 +13,49 @@ class CourseOrdersTable
     public static function configure(Table $table): Table
     {
         return $table
+            // El primero de la lista debe ser la última orden pagada.
+            ->defaultSort('id', 'desc')
+            // Sin buscador en esta sección, a petición del cliente.
+            ->searchable(false)
             ->columns([
-                TextColumn::make('user_id')
-                    ->numeric()
+                TextColumn::make('id')
+                    ->label('Order Nº')
                     ->sortable(),
-                TextColumn::make('name')
-                    ->searchable(),
-                TextColumn::make('email')
-                    ->label('Email address')
-                    ->searchable(),
-                TextColumn::make('price')
-                    ->searchable(),
                 TextColumn::make('order_id')
-                    ->searchable(),
-                TextColumn::make('currency')
-                    ->searchable(),
-                TextColumn::make('amount')
-                    ->searchable(),
+                    ->label('Order ID'),
+                TextColumn::make('name')
+                    ->label('Name'),
+                TextColumn::make('email')
+                    ->label('Email'),
+                TextColumn::make('product_title')
+                    ->label('Product'),
+                TextColumn::make('price')
+                    ->label('Price')
+                    ->money('USD')
+                    ->sortable(),
                 TextColumn::make('txn_id')
-                    ->searchable(),
-                TextColumn::make('checkout_session_id')
-                    ->searchable(),
-                TextColumn::make('payment_status')
-                    ->searchable(),
+                    ->label('Transaction'),
                 TextColumn::make('cupon')
-                    ->searchable(),
+                    ->label('Coupon'),
+                // Guarda el descuento en dólares, no el porcentaje del cupón.
                 TextColumn::make('cupon_mount')
-                    ->searchable(),
+                    ->label('Discount')
+                    ->money('USD')
+                    ->placeholder('-'),
+                TextColumn::make('amount')
+                    ->label('Paid')
+                    ->money('USD'),
                 TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('Date')
+                    ->dateTime('M d, Y H:i')
+                    ->sortable(),
             ])
             ->filters([
                 //
             ])
+            // Las órdenes pagadas no se editan: solo se consultan.
             ->recordActions([
                 ViewAction::make(),
-                EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

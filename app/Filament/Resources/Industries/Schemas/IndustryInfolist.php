@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Industries\Schemas;
 
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
 
@@ -11,25 +12,16 @@ class IndustryInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('titulo'),
-                TextEntry::make('slug'),
-                TextEntry::make('banner')
-                    ->placeholder('-'),
-                TextEntry::make('card')
-                    ->placeholder('-'),
+                TextEntry::make('titulo')->label('Title'),
+                TextEntry::make('Category.name')->label('Category')->placeholder('-'),
+                // Miniaturas en vez del nombre del archivo.
+                ImageEntry::make('card')->label('Card')->disk('public'),
+                ImageEntry::make('banner')->label('Banner')->disk('public'),
+                // El contenido llega como HTML: se muestra formateado, no con las etiquetas a la vista.
                 TextEntry::make('contenido')
+                    ->label('Content')
+                    ->html()
                     ->columnSpanFull(),
-                TextEntry::make('orden')
-                    ->numeric()
-                    ->placeholder('-'),
-                TextEntry::make('category_id')
-                    ->numeric(),
-                TextEntry::make('created_at')
-                    ->dateTime()
-                    ->placeholder('-'),
-                TextEntry::make('updated_at')
-                    ->dateTime()
-                    ->placeholder('-'),
             ]);
     }
 }

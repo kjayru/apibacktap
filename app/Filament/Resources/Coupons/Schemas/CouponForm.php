@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Coupons\Schemas;
 
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
 class CouponForm
@@ -11,13 +12,22 @@ class CouponForm
     {
         return $schema
             ->components([
+                // El código lo genera el sistema al crear y no se toca al editar.
                 TextInput::make('cupon')
-                    ->required(),
+                    ->label('Coupon')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->visibleOn('edit'),
                 TextInput::make('monto_descuento')
-                    ->required(),
-                TextInput::make('estado')
+                    ->label('Discount mount %')
                     ->numeric()
-                    ->default(null),
+                    ->minValue(1)
+                    ->maxValue(100)
+                    ->suffix('%')
+                    ->required(),
+                Toggle::make('estado')
+                    ->label('Active')
+                    ->default(true),
             ]);
     }
 }

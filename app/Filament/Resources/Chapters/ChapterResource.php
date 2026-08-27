@@ -35,6 +35,16 @@ class ChapterResource extends Resource
 
     protected static ?int $navigationSort = 20;
 
+    /**
+     * Un capítulo suelto no dice a qué curso pertenece, así que deja de tener sección
+     * propia y se gestiona desde el curso (#1560). El recurso sigue existiendo porque
+     * es la pantalla a la que llevan los botones Contents y Quiz del listado.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ChapterForm::configure($schema);

@@ -6,10 +6,13 @@ use App\Exceptions\CartException;
 use App\Models\Coupon;
 use App\Models\Course;
 use App\Models\User;
-use App\Models\UserCourse;
 
 class CartPricingService
 {
+    public function __construct(private readonly CourseAccessService $access)
+    {
+    }
+
     /**
      * Recompute price + coupon discount for a course server-side. Never trust a price
      * or discount sent by the client — this is the single source of truth used by both
@@ -54,18 +57,11 @@ class CartPricingService
     }
 
     /**
-     * Blocks re-purchasing a course the user already owns, unless their previous
-     * enrollment expired without ever being approved.
+     * Reglas 9 y 10: se puede recomprar un curso aprobado, caducado o con los intentos
+     * agotados; sólo se rechaza mientras la última matrícula sigue en curso.
      */
     public function assertPurchasable(User $user, Course $course): void
     {
-        $existing = UserCourse::where('user_id', $user->id)
-            ->where('course_id', $course->id)
-            ->latest('id')
-            ->first();
-
-        if ($existing && ((int) $existing->aprobado === 1 || (int) $existing->caducado !== 1)) {
-            throw new CartException('You already have access to this course.');
-        }
+        $this->access->assertPurchasable($user, $course);
     }
 }

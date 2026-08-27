@@ -7,6 +7,27 @@ use Illuminate\Database\Eloquent\Model;
 
 class Coupon extends Model
 {
+
+    /** El panel dejó de pedir el código: lo genera el sistema al crear. */
+    protected static function booted(): void
+    {
+        static::creating(function (self $coupon): void {
+            if (blank($coupon->cupon)) {
+                do {
+                    $codigo = static::generarCupon();
+                } while (static::where('cupon', $codigo)->exists());
+
+                $coupon->cupon = $codigo;
+            }
+        });
+    }
+
+    /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
+    protected $fillable = [
+        'cupon',
+        'monto_descuento',
+        'estado',
+    ];
     use HasFactory;
 
     public static function generarCupon(){

@@ -13,10 +13,8 @@ class ExamForm
         return $schema
             ->components([
                 TextInput::make('title')
+                    ->label('Exam name')
                     ->required(),
-                TextInput::make('duration')
-                    ->numeric()
-                    ->default(null),
                 Textarea::make('description')
                     ->default(null)
                     ->columnSpanFull(),

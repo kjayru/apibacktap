@@ -10,14 +10,19 @@ use App\Models\Course;
 use App\Models\UserCourse;
 use App\Models\UserCourseChapter;
 use App\Models\UserCourseChapterQuiz;
+use App\Services\CourseAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class QuizController extends Controller
 {
+    public function __construct(private readonly CourseAccessService $access)
+    {
+    }
+
     public function show(Request $request, Course $course, Chapter $chapter): JsonResponse
     {
-        $userCourse = $this->findUserCourse($request, $course);
+        $userCourse = $this->findUserCourse($request, $course, $chapter);
         $userCourseChapter = UserCourseChapter::firstOrCreate([
             'user_course_id' => $userCourse->id,
             'chapter_id' => $chapter->id,
@@ -32,6 +37,7 @@ class QuizController extends Controller
 
         return $this->ok([
             'passed' => (int) $userCourseChapter->quiz_result === 1,
+            'pass_threshold' => CourseAccessService::PASS_THRESHOLD,
             'total_questions' => $questions->count(),
             'questions' => $questions->map(fn (ChapterQuiz $question) => [
                 'id' => $question->id,
@@ -51,7 +57,7 @@ class QuizController extends Controller
             'chapter_quiz_option_id' => ['required', 'integer'],
         ]);
 
-        $userCourse = $this->findUserCourse($request, $course);
+        $userCourse = $this->findUserCourse($request, $course, $chapter);
         $userCourseChapter = UserCourseChapter::firstOrCreate([
             'user_course_id' => $userCourse->id,
             'chapter_id' => $chapter->id,
@@ -79,7 +85,7 @@ class QuizController extends Controller
 
     public function result(Request $request, Course $course, Chapter $chapter): JsonResponse
     {
-        $userCourse = $this->findUserCourse($request, $course);
+        $userCourse = $this->findUserCourse($request, $course, $chapter);
         $userCourseChapter = UserCourseChapter::where('user_course_id', $userCourse->id)
             ->where('chapter_id', $chapter->id)
             ->firstOrFail();
@@ -87,9 +93,10 @@ class QuizController extends Controller
         return $this->ok($this->resultPayload($chapter, $userCourseChapter));
     }
 
+    /** Reintentos ilimitados (regla 4): sólo se borran las respuestas, nunca el progreso del capítulo. */
     public function reset(Request $request, Course $course, Chapter $chapter): JsonResponse
     {
-        $userCourse = $this->findUserCourse($request, $course);
+        $userCourse = $this->findUserCourse($request, $course, $chapter);
         $userCourseChapter = UserCourseChapter::where('user_course_id', $userCourse->id)
             ->where('chapter_id', $chapter->id)
             ->first();
@@ -110,7 +117,8 @@ class QuizController extends Controller
         $isComplete = $totalQuestions > 0 && $totalAnswered >= $totalQuestions;
         $percentage = $totalQuestions > 0 ? round($totalCorrect * 100 / $totalQuestions, 2) : 0;
 
-        if ($isComplete && $percentage > 75) {
+        // Regla 2: el mínimo es el 75 %, así que el 75 % exacto aprueba (3 de 4, 9 de 12).
+        if ($isComplete && $percentage >= CourseAccessService::PASS_THRESHOLD) {
             $userCourseChapter->update(['quiz_result' => 1]);
         }
 
@@ -119,16 +127,18 @@ class QuizController extends Controller
             'total_answered' => $totalAnswered,
             'total_correct' => $totalCorrect,
             'percentage' => $percentage,
+            'pass_threshold' => CourseAccessService::PASS_THRESHOLD,
             'is_complete' => $isComplete,
             'passed' => (int) $userCourseChapter->refresh()->quiz_result === 1,
         ];
     }
 
-    private function findUserCourse(Request $request, Course $course): UserCourse
+    private function findUserCourse(Request $request, Course $course, Chapter $chapter): UserCourse
     {
-        $userCourse = UserCourse::where('user_id', $request->user()->id)->where('course_id', $course->id)->first();
+        abort_if((int) $chapter->course_id !== (int) $course->id, 404, 'Chapter not found in this course.');
 
-        abort_if(! $userCourse, 403, 'You do not have access to this course.');
+        $userCourse = $this->access->resolve($request->user(), $course);
+        $this->access->assertChapterUnlocked($userCourse, $course, $chapter);
 
         return $userCourse;
     }

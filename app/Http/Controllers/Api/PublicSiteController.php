@@ -42,7 +42,7 @@ class PublicSiteController extends Controller
             ],
             'about' => [
                 'title' => 'ABOUT US',
-                'summary' => 'TAP Security was founded with the vision to challenge the security service industry by proactively placing the client needs first.',
+                'summary' => 'TAP Security was founded with the vision to challenge the security service industry by proactively placing the client\'s needs first.',
             ],
             'featured_categories' => $categories->map(fn (Category $category) => $this->transformCategory($category))->values(),
             'featured_posts' => $posts->map(fn (Post $post) => $this->transformPostCard($post))->values(),
@@ -270,7 +270,7 @@ class PublicSiteController extends Controller
             $inf->save();
 
             $education = new Education();
-            foreach (['graduatehigh', 'hightschool', 'highfrom', 'hightto', 'graduatecollage', 'collaganame', 'collagefrom', 'collageto', 'activecard', 'officer', 'firearm', 'holster', 'others'] as $field) {
+            foreach (['graduatehigh', 'hightschool', 'highfrom', 'hightto', 'graduatecollage', 'collaganame', 'collagefrom', 'collageto', 'whatmayor', 'completed', 'activecard', 'officer', 'firearm', 'holster', 'others'] as $field) {
                 $education->{$field} = $request->input($field);
             }
             $education->information_id = $inf->id;
@@ -477,7 +477,7 @@ class PublicSiteController extends Controller
 
     private function sendRawNotification(string $subject, string $body): void
     {
-        $to = env('MAIL_CONTACT');
+        $to = config('mail.contact');
 
         if (! filled($to)) {
             return;

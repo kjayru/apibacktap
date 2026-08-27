@@ -74,6 +74,7 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/cart/quote', [CartController::class, 'quote']);
         Route::post('/checkout/session', [CheckoutController::class, 'create']);
+        Route::post('/checkout/event-session', [CheckoutController::class, 'createEventSession']);
         Route::get('/orders/by-session', [CheckoutController::class, 'showBySession']);
 
         Route::get('/profile', [ProfileController::class, 'show']);

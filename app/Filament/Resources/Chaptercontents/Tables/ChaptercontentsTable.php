@@ -3,58 +3,59 @@
 namespace App\Filament\Resources\Chaptercontents\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ChaptercontentsTable
 {
+    /**
+     * Las columnas del listado anterior (#1582, #1583): título, un extracto del contenido,
+     * el vídeo y el audio reproducibles ahí mismo (#1584) y la fecha.
+     */
     public static function configure(Table $table): Table
     {
         return $table
-            ->columns([
-                TextColumn::make('titulo')
-                    ->searchable(),
-                TextColumn::make('slug')
-                    ->searchable(),
-                ImageColumn::make('poster')
-                    ->label('Video')
-                    ->disk('public')
-                    ->height(60)
-                    ->url(fn ($record) => $record->video ? Storage::disk('public')->url($record->video) : null)
-                    ->openUrlInNewTab(),
-                TextColumn::make('chapter_id')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('audio')
-                    ->searchable(),
-                TextColumn::make('order')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
-            ])
+            ->defaultSort('id', 'desc')
+            ->columns(static::columns())
             ->recordActions([
-                ViewAction::make(),
                 EditAction::make(),
+                DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /** @return array<int, mixed> */
+    public static function columns(): array
+    {
+        return [
+            TextColumn::make('titulo')
+                ->label('Title')
+                ->wrap()
+                ->searchable(),
+            TextColumn::make('contenido')
+                ->label('Excerpt')
+                ->wrap()
+                ->state(fn ($record): string => Str::limit(strip_tags((string) $record->contenido), 60))
+                ->placeholder('-'),
+            ViewColumn::make('video')
+                ->label('Video')
+                ->view('filament.tables.columns.media-preview', ['type' => 'video']),
+            ViewColumn::make('audio')
+                ->label('Audio')
+                ->view('filament.tables.columns.media-preview', ['type' => 'audio']),
+            TextColumn::make('created_at')
+                ->label('Date')
+                ->dateTime('M d, Y')
+                ->sortable(),
+        ];
     }
 }

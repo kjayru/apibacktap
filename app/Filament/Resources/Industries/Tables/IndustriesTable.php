@@ -15,31 +15,22 @@ class IndustriesTable
     public static function configure(Table $table): Table
     {
         return $table
+            // El primero de la lista debe ser el último registro creado.
+            ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('titulo')
-                    ->searchable(),
-                TextColumn::make('slug')
-                    ->searchable(),
-                ImageColumn::make('banner')
-                    ->disk('public')
-                    ->height(60),
+                    ->label('Title')
+                    ->searchable()
+                    ->sortable(),
                 ImageColumn::make('card')
-                    ->disk('public')
-                    ->height(60),
-                TextColumn::make('orden')
-                    ->numeric()
+                    ->label('Card')
+                    ->disk('public'),
+                ImageColumn::make('banner')
+                    ->label('Banner')
+                    ->disk('public'),
+                TextColumn::make('Category.name')
+                    ->label('Category')
                     ->sortable(),
-                TextColumn::make('category_id')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
