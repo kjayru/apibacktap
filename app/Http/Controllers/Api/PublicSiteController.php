@@ -42,7 +42,7 @@ class PublicSiteController extends Controller
             ],
             'about' => [
                 'title' => 'ABOUT US',
-                'summary' => 'TAP Security was founded with the vision to challenge the security service industry by proactively placing the client needs first.',
+                'summary' => 'TAP Security was founded with the vision to challenge the security service industry by proactively placing the client\'s needs first.',
             ],
             'featured_categories' => $categories->map(fn (Category $category) => $this->transformCategory($category))->values(),
             'featured_posts' => $posts->map(fn (Post $post) => $this->transformPostCard($post))->values(),
