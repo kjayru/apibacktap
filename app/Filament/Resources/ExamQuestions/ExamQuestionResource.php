@@ -5,7 +5,6 @@ namespace App\Filament\Resources\ExamQuestions;
 use App\Filament\Resources\ExamQuestions\Pages\CreateExamQuestion;
 use App\Filament\Resources\ExamQuestions\Pages\EditExamQuestion;
 use App\Filament\Resources\ExamQuestions\Pages\ListExamQuestions;
-use App\Filament\Resources\ExamQuestions\RelationManagers\ExamquestionoptionsRelationManager;
 use App\Filament\Resources\ExamQuestions\Schemas\ExamQuestionForm;
 use App\Filament\Resources\ExamQuestions\Schemas\ExamQuestionInfolist;
 use App\Filament\Resources\ExamQuestions\Tables\ExamQuestionsTable;
@@ -41,9 +40,7 @@ class ExamQuestionResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            ExamquestionoptionsRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

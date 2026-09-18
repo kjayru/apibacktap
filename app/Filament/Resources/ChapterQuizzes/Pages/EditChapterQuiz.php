@@ -27,8 +27,10 @@ class EditChapterQuiz extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            // La URL se calcula aquí, antes de borrar: evaluada después, la pregunta ya no
+            // existe y la petición acababa en 404 sin redirigir.
             DeleteAction::make()
-                ->successRedirectUrl(fn (): string => $this->quizUrl()),
+                ->successRedirectUrl($this->quizUrl()),
         ];
     }
 

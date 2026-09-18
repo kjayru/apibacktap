@@ -2,41 +2,44 @@
 
 namespace App\Filament\Resources\ExamQuestions\Schemas;
 
+use Closure;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
 class ExamQuestionForm
 {
     /**
-     * Las opciones se editan aquí mismo, sin abrir una pantalla aparte por cada una.
-     * El tablero (#1619) pide el flujo del admin anterior: añadir respuestas y marcar
-     * la correcta en el mismo formulario de la pregunta.
+     * La pregunta y sus opciones en la misma pantalla, como en el admin de producción
+     * (#1619, #1728). El examen no se elige aquí porque la pregunta se crea desde las
+     * preguntas de su examen; y la tabla de opciones de abajo, que era una segunda forma
+     * de añadirlas, desaparece (#1722).
      */
     public static function configure(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Select::make('exam_id')
-                    ->label('Exam')
-                    ->relationship('exam', 'title')
-                    ->searchable()
-                    ->preload()
-                    ->required(),
                 Textarea::make('question')
-                    ->label('Exam question')
+                    ->label('Question')
                     ->required()
                     ->columnSpanFull(),
                 Repeater::make('examquestionoptions')
                     ->relationship()
-                    ->label('Exam question options')
+                    ->label('Answers')
                     ->addActionLabel('Add option')
                     ->reorderable(false)
                     ->columns(4)
                     ->columnSpanFull()
+                    ->rules([
+                        // Sin respuesta correcta la pregunta no puntúa para nadie.
+                        fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                            if (! collect($value)->contains(fn (array $option): bool => (bool) ($option['resultado'] ?? false))) {
+                                $fail('Mark which answer is the correct one.');
+                            }
+                        },
+                    ])
                     ->schema([
                         TextInput::make('opcion')
                             ->label('Answer')
