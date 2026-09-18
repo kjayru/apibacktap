@@ -56,12 +56,16 @@ class ChapterForm
      * Las columnas guardan '1' o NULL, y la API distingue con filled(): un false de PHP
      * se escribiría como '0' y la lectura daría "sí tiene vídeo" en todos los capítulos.
      * Por eso la casilla desmarcada vuelve a NULL y no a false.
+     *
+     * Al leer se convierte a booleano tal cual. Con filled() salía marcada en el alta:
+     * la casilla arranca en false y filled(false) es true, así que un capítulo nuevo se
+     * guardaba con todo activado si no se tocaban (#1699, #1700, #1701).
      */
     public static function flag(string $name, string $label): Checkbox
     {
         return Checkbox::make($name)
             ->label($label)
-            ->formatStateUsing(fn ($state): bool => filled($state) && $state !== '0')
+            ->formatStateUsing(fn ($state): bool => (bool) $state)
             ->dehydrateStateUsing(fn ($state): ?int => $state ? 1 : null);
     }
 }

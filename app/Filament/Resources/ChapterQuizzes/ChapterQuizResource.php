@@ -5,7 +5,6 @@ namespace App\Filament\Resources\ChapterQuizzes;
 use App\Filament\Resources\ChapterQuizzes\Pages\CreateChapterQuiz;
 use App\Filament\Resources\ChapterQuizzes\Pages\EditChapterQuiz;
 use App\Filament\Resources\ChapterQuizzes\Pages\ListChapterQuizzes;
-use App\Filament\Resources\ChapterQuizzes\RelationManagers\ChapterquizoptionsRelationManager;
 use App\Filament\Resources\ChapterQuizzes\Schemas\ChapterQuizForm;
 use App\Filament\Resources\ChapterQuizzes\Schemas\ChapterQuizInfolist;
 use App\Filament\Resources\ChapterQuizzes\Tables\ChapterQuizzesTable;
@@ -41,9 +40,7 @@ class ChapterQuizResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            ChapterquizoptionsRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

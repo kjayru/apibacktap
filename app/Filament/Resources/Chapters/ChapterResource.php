@@ -5,8 +5,8 @@ namespace App\Filament\Resources\Chapters;
 use App\Filament\Resources\Chapters\Pages\CreateChapter;
 use App\Filament\Resources\Chapters\Pages\EditChapter;
 use App\Filament\Resources\Chapters\Pages\ListChapters;
-use App\Filament\Resources\Chapters\RelationManagers\ChaptercontentsRelationManager;
-use App\Filament\Resources\Chapters\RelationManagers\ChapterquizzesRelationManager;
+use App\Filament\Resources\Chapters\Pages\ManageChapterContents;
+use App\Filament\Resources\Chapters\Pages\ManageChapterQuizzes;
 use App\Filament\Resources\Chapters\Schemas\ChapterForm;
 use App\Filament\Resources\Chapters\Schemas\ChapterInfolist;
 use App\Filament\Resources\Chapters\Tables\ChaptersTable;
@@ -61,10 +61,7 @@ class ChapterResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            ChaptercontentsRelationManager::class,
-            ChapterquizzesRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array
@@ -73,6 +70,8 @@ class ChapterResource extends Resource
             'index' => ListChapters::route('/'),
             'create' => CreateChapter::route('/create'),
             'edit' => EditChapter::route('/{record}/edit'),
+            'contents' => ManageChapterContents::route('/{record}/contents'),
+            'quizzes' => ManageChapterQuizzes::route('/{record}/quizzes'),
         ];
     }
 }

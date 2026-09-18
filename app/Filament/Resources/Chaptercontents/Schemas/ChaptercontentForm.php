@@ -37,7 +37,7 @@ class ChaptercontentForm
                 ->directory('video')
                 ->acceptedFileTypes(['video/mp4', 'video/webm', 'video/ogg'])
                 ->maxSize(512000)
-                ->helperText('MP4, WebM u OGG. Peso máximo 500 MB.')
+                ->helperText('MP4, WebM or OGG. Maximum size 500 MB.')
                 ->required(),
             FileUpload::make('poster')
                 ->label('Poster video')
