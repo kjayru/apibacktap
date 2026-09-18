@@ -2,16 +2,21 @@
 
 namespace App\Filament\Resources\Exams\Tables;
 
-use Filament\Actions\Action;
+use App\Filament\Resources\Exams\ExamResource;
+use App\Models\Exam;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class ExamsTable
 {
+    /**
+     * Como el listado de producción: título, columna "Options" con el botón "Options
+     * exam" que lleva a las preguntas de ese examen, y fecha (#1608).
+     */
     public static function configure(Table $table): Table
     {
         return $table
@@ -22,25 +27,19 @@ class ExamsTable
                     ->label('Exam name')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('exam_questions_count')
-                    ->label('Questions')
-                    ->counts('examquestions'),
+                TextColumn::make('examquestions_count')
+                    ->label('Options')
+                    ->counts('examquestions')
+                    ->badge()
+                    ->color('success')
+                    ->formatStateUsing(fn ($state): string => "Options exam · {$state}")
+                    ->url(fn (Exam $record): string => ExamResource::getUrl('questions', ['record' => $record])),
                 TextColumn::make('created_at')
                     ->label('Date')
                     ->dateTime('M d, Y')
                     ->sortable(),
             ])
-            ->filters([
-                //
-            ])
             ->recordActions([
-                Action::make('questions')
-                    ->label('Questions')
-                    ->icon('heroicon-o-queue-list')
-                    ->color('warning')
-                    ->url(fn ($record): string => route('filament.admin.resources.exam-questions.index', [
-                        'tableSearch' => $record->title,
-                    ])),
                 EditAction::make(),
                 DeleteAction::make(),
             ])

@@ -18,8 +18,6 @@ class CategoryInfolist
             ->components([
                 TextEntry::make('name')
                     ->label('Name'),
-                TextEntry::make('slug')
-                    ->label('Slug'),
                 TextEntry::make('orden')
                     ->label('Order')
                     ->numeric()

@@ -18,8 +18,6 @@ class PostInfolist
             ->components([
                 TextEntry::make('titulo')
                     ->label('Title'),
-                TextEntry::make('slug')
-                    ->label('Slug'),
                 TextEntry::make('created_at')
                     ->label('Date')
                     ->dateTime('M d, Y')

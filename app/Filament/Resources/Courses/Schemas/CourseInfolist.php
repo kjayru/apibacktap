@@ -14,7 +14,6 @@ class CourseInfolist
                 TextEntry::make('titulo'),
                 TextEntry::make('subtitulo')
                     ->placeholder('-'),
-                TextEntry::make('slug'),
                 TextEntry::make('banner')
                     ->placeholder('-'),
                 TextEntry::make('video')

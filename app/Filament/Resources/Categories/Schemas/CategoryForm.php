@@ -28,14 +28,14 @@ class CategoryForm
                     ->disk('public')
                     ->directory('card')
                     ->image()
-                    ->helperText('Medida sugerida: 600 x 400 px.')
+                    ->helperText('Suggested size: 380 x 340 px.')
                     ->columnSpanFull(),
                 FileUpload::make('banner')
                     ->label('Banner')
                     ->disk('public')
                     ->directory('banner')
                     ->image()
-                    ->helperText('Medida sugerida: 1920 x 480 px.')
+                    ->helperText('Suggested size: 1080 x 674 px.')
                     ->columnSpanFull(),
             ]);
     }

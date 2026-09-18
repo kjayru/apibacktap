@@ -5,7 +5,6 @@ namespace App\Filament\Resources\ChapterQuizOptions;
 use App\Filament\Resources\ChapterQuizOptions\Pages\CreateChapterQuizOption;
 use App\Filament\Resources\ChapterQuizOptions\Pages\EditChapterQuizOption;
 use App\Filament\Resources\ChapterQuizOptions\Pages\ListChapterQuizOptions;
-use App\Filament\Resources\ChapterQuizOptions\Pages\ViewChapterQuizOption;
 use App\Filament\Resources\ChapterQuizOptions\Schemas\ChapterQuizOptionForm;
 use App\Filament\Resources\ChapterQuizOptions\Schemas\ChapterQuizOptionInfolist;
 use App\Filament\Resources\ChapterQuizOptions\Tables\ChapterQuizOptionsTable;
@@ -51,7 +50,6 @@ class ChapterQuizOptionResource extends Resource
         return [
             'index' => ListChapterQuizOptions::route('/'),
             'create' => CreateChapterQuizOption::route('/create'),
-            'view' => ViewChapterQuizOption::route('/{record}'),
             'edit' => EditChapterQuizOption::route('/{record}/edit'),
         ];
     }

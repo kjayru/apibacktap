@@ -13,8 +13,6 @@ class ChaptercontentInfolist
             ->components([
                 TextEntry::make('titulo')
                     ->placeholder('-'),
-                TextEntry::make('slug')
-                    ->placeholder('-'),
                 TextEntry::make('video'),
                 TextEntry::make('poster')
                     ->placeholder('-'),

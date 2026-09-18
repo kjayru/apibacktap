@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Industries\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -38,6 +39,8 @@ class IndustriesTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+                // Borrar una industria desde su fila, como en las demás secciones (#1682).
+                DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

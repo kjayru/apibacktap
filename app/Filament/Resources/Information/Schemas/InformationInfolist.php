@@ -2,10 +2,12 @@
 
 namespace App\Filament\Resources\Information\Schemas;
 
+use App\Models\Information;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class InformationInfolist
 {
@@ -44,8 +46,13 @@ class InformationInfolist
                             ->columnSpanFull(),
                         TextEntry::make('whichshift')
                             ->label('Which shift are you applying for?'),
+                        // Se guarda serializado, como en el sitio anterior: día => número si
+                        // está marcado, cadena vacía si no. Se muestra como en producción,
+                        // "Monday Tuesday Wednesday" (#1434).
                         TextEntry::make('whichday')
                             ->label('Which days are you available?')
+                            ->formatStateUsing(fn (?string $state): string => static::availableDays($state))
+                            ->placeholder('-')
                             ->columnSpan(2),
                         TextEntry::make('citizen')
                             ->label('Are you a citizen of the United States?'),
@@ -135,7 +142,7 @@ class InformationInfolist
                                 TextEntry::make('addressempl')->label('Address')->placeholder('-'),
                                 TextEntry::make('supervisor')->label('Supervisor')->placeholder('-'),
                                 TextEntry::make('jobtitle')->label('Job title')->placeholder('-'),
-                                TextEntry::make('references')->label('May we contact?')->placeholder('-'),
+                                TextEntry::make('references')->label('May we contact your previous supervisor for a reference?')->placeholder('-'),
                                 TextEntry::make('starting')->label('Starting salary')->placeholder('-'),
                                 TextEntry::make('ending')->label('Ending salary')->placeholder('-'),
                                 TextEntry::make('from')->label('From')->placeholder('-'),
@@ -162,19 +169,48 @@ class InformationInfolist
                     ->schema([
                         TextEntry::make('disclaimer.signature')->label('Signature')->placeholder('-'),
                         TextEntry::make('disclaimer.datedisclamer')->label('Date')->placeholder('-'),
-                        // Los adjuntos se guardan como lista separada por comas.
-                        TextEntry::make('disclaimer.fileid')
+                        // Los adjuntos están en la tabla archivos, no en disclaimer.fileid,
+                        // que nunca se ha rellenado: por eso la ficha decía siempre que no
+                        // había ninguno (#1454, #1669). Cada archivo abre en otra pestaña.
+                        TextEntry::make('attachments')
                             ->label('Attached files')
-                            ->placeholder('Sin archivos adjuntos')
-                            ->columnSpanFull()
-                            ->formatStateUsing(fn (?string $state): string => filled($state)
-                                ? implode(', ', array_filter(array_map('trim', explode(',', $state))))
-                                : '')
-                            ->url(fn (?string $state): ?string => filled($state) && ! str_contains($state, ',')
-                                ? asset('storage/' . ltrim($state, '/'))
-                                : null)
-                            ->openUrlInNewTab(),
+                            ->state(fn (Information $record): ?string => static::attachmentLinks($record))
+                            ->html()
+                            ->placeholder('No attached files')
+                            ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    public static function availableDays(?string $raw): string
+    {
+        $days = @unserialize((string) $raw, ['allowed_classes' => false]);
+
+        if (! is_array($days)) {
+            return (string) $raw;
+        }
+
+        return collect($days)
+            ->filter(fn ($value): bool => filled($value))
+            ->keys()
+            ->map(fn (string $day): string => ucfirst($day))
+            ->implode(' ');
+    }
+
+    public static function attachmentLinks(Information $record): ?string
+    {
+        $files = $record->disclaimer?->archivos ?? collect();
+
+        if ($files->isEmpty()) {
+            return null;
+        }
+
+        return $files
+            ->map(fn ($archivo): string => sprintf(
+                '<a href="%s" target="_blank" rel="noopener" class="text-primary-600 underline">%s</a>',
+                e(Storage::disk('public')->url($archivo->file)),
+                e(basename($archivo->file)),
+            ))
+            ->implode('<br>');
     }
 }

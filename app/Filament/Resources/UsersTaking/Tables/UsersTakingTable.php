@@ -105,6 +105,8 @@ class UsersTakingTable
             ->modalWidth(Width::FourExtraLarge)
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close')
+            // El documento es largo: con el foco en "Close" se abría por el final.
+            ->modalAutofocus(false)
             ->modalContent(fn (User $record) => view('filament.user-courses.enrollment', [
                 'sign' => UserSign::where('user_id', $record->getKey())->latest('id')->first(),
             ]));

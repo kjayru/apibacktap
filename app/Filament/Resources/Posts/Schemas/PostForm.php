@@ -4,8 +4,8 @@ namespace App\Filament\Resources\Posts\Schemas;
 
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
 class PostForm
@@ -22,14 +22,14 @@ class PostForm
                     ->disk('public')
                     ->directory('card')
                     ->image()
-                    ->helperText('Medida sugerida: 600 x 400 px.'),
+                    ->helperText('Suggested size: 300 x 200 px.'),
                 FileUpload::make('banner')
                     ->label('Banner')
                     ->disk('public')
                     ->directory('banner')
                     ->image()
                     ->required()
-                    ->helperText('Medida sugerida: 1920 x 480 px.'),
+                    ->helperText('Suggested size: 1440 x 360 px.'),
                 Textarea::make('resumen')
                     ->label('Summary')
                     ->default(null)

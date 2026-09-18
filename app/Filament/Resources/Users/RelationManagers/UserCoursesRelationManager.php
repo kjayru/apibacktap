@@ -66,7 +66,8 @@ class UserCoursesRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->createAnother(false),
             ])
             ->recordActions([
                 Action::make('certificate')
@@ -81,7 +82,7 @@ class UserCoursesRelationManager extends RelationManager
                     ->requiresConfirmation()
                     ->action(function (Model $record): void {
                         /** @var UserCourse $record */
-                        $newUserCourse = new UserCourse();
+                        $newUserCourse = new UserCourse;
                         $newUserCourse->user_id = $record->user_id;
                         $newUserCourse->course_id = $record->course_id;
                         $newUserCourse->fecha_inicio = Carbon::now()->format('Y-m-d');

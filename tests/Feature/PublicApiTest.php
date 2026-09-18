@@ -26,6 +26,23 @@ class PublicApiTest extends TestCase
             ->assertJsonPath('data.featured_posts.0.slug', 'related-post');
     }
 
+    public function test_blog_detail_turns_youtube_links_into_embedded_players(): void
+    {
+        $this->seedContent();
+        \DB::table('posts')->where('slug', 'thanksgiving-auto-theft-alert')->update([
+            'contenido' => '<p>Watch it:</p><p><a href="https://www.youtube.com/watch?v=kbPKhLA6UGQ">VIDEO</a></p><p><a href="https://example.com">Other link</a></p>',
+        ]);
+
+        $html = $this->getJson('/api/v1/blog/thanksgiving-auto-theft-alert')
+            ->assertOk()
+            ->json('data.content_html');
+
+        $this->assertStringContainsString('<iframe', $html);
+        $this->assertStringContainsString('https://www.youtube.com/embed/kbPKhLA6UGQ', $html);
+        $this->assertStringNotContainsString('>VIDEO</a>', $html);
+        $this->assertStringContainsString('<a href="https://example.com">Other link</a>', $html);
+    }
+
     public function test_blog_detail_endpoint_returns_post_payload(): void
     {
         $this->seedContent();

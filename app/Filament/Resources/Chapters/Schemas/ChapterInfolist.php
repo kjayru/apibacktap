@@ -16,8 +16,6 @@ class ChapterInfolist
                     ->placeholder('-'),
                 TextEntry::make('course_id')
                     ->numeric(),
-                TextEntry::make('slug')
-                    ->placeholder('-'),
                 TextEntry::make('video')
                     ->placeholder('-'),
                 TextEntry::make('reading')

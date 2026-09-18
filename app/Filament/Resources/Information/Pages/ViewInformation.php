@@ -14,4 +14,13 @@ class ViewInformation extends ViewRecord
         return [
         ];
     }
+
+    /**
+     * Referencias y empleos ya salen completos en sus bloques de la ficha; las tablas de
+     * abajo los repetían (#1447, #1667). En la edición se mantienen para poder cambiarlos.
+     */
+    public function getRelationManagers(): array
+    {
+        return [];
+    }
 }

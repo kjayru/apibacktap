@@ -25,8 +25,6 @@ class CategoriesTable
             ->columns([
                 TextColumn::make('name')
                     ->label('Name'),
-                TextColumn::make('slug')
-                    ->label('Slug'),
                 ImageColumn::make('card')
                     ->label('Card')
                     ->disk('public')

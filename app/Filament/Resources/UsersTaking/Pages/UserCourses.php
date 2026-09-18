@@ -31,12 +31,12 @@ class UserCourses extends Page implements HasTable
 
     protected static ?string $breadcrumb = 'User Course';
 
-    public function mount(int | string $record): void
+    public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
     }
 
-    public function getTitle(): string | Htmlable
+    public function getTitle(): string|Htmlable
     {
         return 'User Course';
     }
@@ -53,6 +53,10 @@ class UserCourses extends Page implements HasTable
             ->heading(fn (): string => UsersTakingTable::fullName($this->getRecord()))
             ->description(fn (): string => $this->getCoursesSummary())
             ->columns([
+                // Numeración de los cursos del alumno, como en producción (#1635).
+                TextColumn::make('index')
+                    ->label('#')
+                    ->rowIndex(),
                 // Sin título, como en producción (#1636).
                 TextColumn::make('id')
                     ->label('')
@@ -94,6 +98,9 @@ class UserCourses extends Page implements HasTable
                     ->modalWidth(Width::FiveExtraLarge)
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close')
+                    // Sin campos, el foco automático caía en "Close", al pie, y el modal
+                    // se abría desplazado hasta las últimas preguntas (#1634).
+                    ->modalAutofocus(false)
                     ->modalContent(fn (UserCourse $record) => view('filament.user-courses.exam-results', [
                         'questions' => $this->getExamResultQuestions($record),
                     ])),

@@ -8,10 +8,8 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\HtmlString;
+use Filament\Support\Icons\Heroicon;
 
 class CourseForm
 {
@@ -44,25 +42,19 @@ class CourseForm
                     ->disk('public')
                     ->directory('banner')
                     ->image()
-                    ->helperText('Medida sugerida: 1920 x 480 px.')
+                    ->helperText('Suggested size: 450 x 300 px.')
                     ->columnSpanFull()
                     ->required()
                     ->markAsRequired(false),
-                // Al editar, el vídeo que ya está subido se ve aquí mismo (#1516): con el
-                // nombre del archivo no había forma de saber cuál era.
-                Text::make(fn ($record): HtmlString => new HtmlString(
-                    '<video src="' . e(Storage::disk('public')->url($record->video)) . '" controls preload="metadata"'
-                    . ' class="rounded-lg" style="max-width:320px"></video>'
-                ))
-                    ->visible(fn (?object $record): bool => filled($record?->video))
-                    ->columnSpanFull(),
+                // El propio campo ya reproduce el vídeo subido y trae el botón para
+                // quitarlo; un reproductor aparte lo duplicaba (#1516, #1695).
                 FileUpload::make('video')
                     ->label('Video')
                     ->disk('public')
                     ->directory('video')
                     ->acceptedFileTypes(['video/mp4', 'video/webm', 'video/ogg'])
                     ->maxSize(512000)
-                    ->helperText('MP4, WebM u OGG. Peso máximo 500 MB.')
+                    ->helperText('MP4, WebM or OGG. Maximum size 500 MB.')
                     ->columnSpanFull()
                     ->required()
                     ->markAsRequired(false),
@@ -70,7 +62,9 @@ class CourseForm
                     ->label('Available')
                     ->native(false)
                     ->displayFormat('M d, Y')
-                    ->placeholder('Selecciona la fecha en el calendario')
+                    ->placeholder('Select the date from the calendar')
+                    // Icono de calendario a la derecha, como en producción (#1518, #1545).
+                    ->suffixIcon(Heroicon::OutlinedCalendarDays)
                     ->required()
                     ->markAsRequired(false),
                 Select::make('capitulos')
@@ -106,7 +100,7 @@ class CourseForm
                 TextInput::make('tiempovalido')
                     ->label('Access')
                     ->numeric()
-                    ->suffix('días')
+                    ->suffix('days')
                     ->required()
                     ->markAsRequired(false),
                 Select::make('certification_id')

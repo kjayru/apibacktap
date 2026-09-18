@@ -1,106 +1,114 @@
-{{-- Factura de la orden, con la misma disposición que el admin anterior servía en
-     backend/orders/show.blade.php, más los datos del cupón (#1417). --}}
+{{-- Factura de la orden, con la disposición del admin de producción: remitente,
+     destinatario y número de factura en tres columnas, la línea del producto, la forma
+     de pago y el total, más los datos del cupón (#1417).
+
+     Con estilos en línea y no con clases de Tailwind: el panel no compila un tema
+     propio, así que las clases que Filament no usa no existen y la factura salía como
+     texto plano. --}}
 @php
     $order = $getRecord();
     $profile = $order->user?->profile;
     $discount = (float) ($order->cupon_mount ?? 0);
     $paid = $order->amount !== null ? (float) $order->amount : (float) $order->price;
+
+    $card = 'background:#fff;border:1px solid rgba(3,7,18,.08);border-radius:12px;padding:24px;color:#111827;font-size:14px;line-height:1.55;';
+    $muted = 'color:#6b7280;';
+    $label = 'font-weight:600;';
+    $th = 'text-align:left;padding:10px 12px;font-weight:600;border-bottom:1px solid #e5e7eb;background:#f9fafb;';
+    $td = 'padding:10px 12px;border-bottom:1px solid #f3f4f6;';
 @endphp
 
-<div class="fi-section rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
-    <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-gray-200 pb-4 dark:border-white/10">
-        <h2 class="text-xl font-bold">Tap Security</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-            Date: {{ $order->created_at?->format('M d, Y H:i:s') }}
-        </p>
+<div style="{{ $card }}">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;padding-bottom:16px;border-bottom:1px solid #e5e7eb;">
+        <h2 style="margin:0;font-size:20px;font-weight:700;">Tap Security</h2>
+        <span style="{{ $muted }}">Date: {{ $order->created_at?->format('M d, Y H:i:s') }}</span>
     </div>
 
-    <div class="grid gap-6 py-6 sm:grid-cols-3">
-        <div class="text-sm">
-            <p class="mb-1 font-semibold text-gray-500 dark:text-gray-400">From</p>
-            <p>11503 Jones Maltsberger Rd, Ste 1158</p>
-            <p>San Antonio, TX 78216</p>
-            <p>Phone: Tel: (210) 399-1116</p>
-            <p>Email: admin@txassetpro.com</p>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;padding:20px 0;">
+        <div style="flex:1 1 200px;">
+            <div style="{{ $muted }}{{ $label }}margin-bottom:4px;">From</div>
+            <div style="{{ $label }}">Tap Security</div>
+            <div>11503 Jones Maltsberger Rd, Ste 1158</div>
+            <div>San Antonio, TX 78216</div>
+            <div>Phone: Tel: (210) 399-1116</div>
+            <div>Email: admin@txassetpro.com</div>
         </div>
 
-        <div class="text-sm">
-            <p class="mb-1 font-semibold text-gray-500 dark:text-gray-400">To</p>
-            <p class="font-semibold">{{ $order->name ?: $order->user?->name }}</p>
+        <div style="flex:1 1 200px;">
+            <div style="{{ $muted }}{{ $label }}margin-bottom:4px;">To</div>
+            <div style="{{ $label }}">{{ $order->name ?: $order->user?->name }}</div>
             @if ($profile?->address1)
-                <p>{{ $profile->address1 }}</p>
+                <div>{{ $profile->address1 }}</div>
             @endif
             @if ($profile?->city || $profile?->zipcode)
-                <p>{{ collect([$profile?->city, $profile?->zipcode])->filter()->implode(', ') }}</p>
+                <div>{{ collect([$profile?->city, $profile?->zipcode])->filter()->implode(', ') }}</div>
             @endif
             @if ($profile?->phone)
-                <p>Phone: {{ $profile->phone }}</p>
+                <div>Phone: {{ $profile->phone }}</div>
             @endif
-            <p>Email: {{ $order->email ?: $order->user?->email }}</p>
+            <div>Email: {{ $order->email ?: $order->user?->email }}</div>
         </div>
 
-        <div class="text-sm">
-            <p class="font-semibold">Invoice #{{ $order->txn_id }}</p>
-            <p class="mt-4"><span class="font-semibold">Order ID:</span> {{ $order->id }}</p>
+        <div style="flex:1 1 200px;">
+            <div style="{{ $label }}word-break:break-all;">Invoice #{{ $order->txn_id }}</div>
+            <div style="margin-top:12px;"><span style="{{ $label }}">Order ID:</span> {{ $order->id }}</div>
             @if ($order->order_id)
-                <p><span class="font-semibold">Order Nº:</span> {{ $order->order_id }}</p>
+                <div><span style="{{ $label }}">Order Nº:</span> {{ $order->order_id }}</div>
             @endif
             @if ($order->payment_status)
-                <p><span class="font-semibold">Payment status:</span> {{ $order->payment_status }}</p>
+                <div><span style="{{ $label }}">Payment status:</span> {{ $order->payment_status }}</div>
             @endif
         </div>
     </div>
 
-    <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-            <thead class="border-b border-gray-200 dark:border-white/10">
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
                 <tr>
-                    <th class="py-2 pr-4 font-semibold">Qty</th>
-                    <th class="py-2 pr-4 font-semibold">Product</th>
-                    <th class="py-2 pr-4 font-semibold">Currency</th>
-                    <th class="py-2 font-semibold">Price</th>
+                    <th style="{{ $th }}width:60px;">Qty</th>
+                    <th style="{{ $th }}">Product</th>
+                    <th style="{{ $th }}width:110px;">Currency</th>
+                    <th style="{{ $th }}width:110px;text-align:right;">Price</th>
                 </tr>
             </thead>
             <tbody>
-                <tr class="border-b border-gray-100 dark:border-white/5">
-                    <td class="py-2 pr-4">1</td>
-                    <td class="py-2 pr-4">{{ $order->product_title }}</td>
-                    <td class="py-2 pr-4">{{ strtoupper($order->currency ?: 'USD') }}</td>
-                    <td class="py-2">$ {{ number_format((float) $order->price, 2) }}</td>
+                <tr>
+                    <td style="{{ $td }}">1</td>
+                    <td style="{{ $td }}">{{ $order->product_title }}</td>
+                    <td style="{{ $td }}">{{ strtoupper($order->currency ?: 'USD') }}</td>
+                    <td style="{{ $td }}text-align:right;">$ {{ number_format((float) $order->price, 2) }}</td>
                 </tr>
             </tbody>
         </table>
     </div>
 
-    <div class="grid gap-6 pt-6 sm:grid-cols-2">
-        <div class="text-sm">
-            <p class="mb-2 font-semibold text-gray-500 dark:text-gray-400">Payment Methods:</p>
-            <p>Stripe — Visa, Mastercard, Maestro, American Express</p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:24px;padding-top:20px;">
+        <div>
+            <div style="{{ $muted }}{{ $label }}margin-bottom:4px;">Payment Methods:</div>
+            <div>Stripe — Visa, Mastercard, Maestro, American Express</div>
         </div>
 
-        <div class="text-sm sm:justify-self-end sm:text-right">
-            <table class="w-full">
-                <tbody>
+        <table style="border-collapse:collapse;min-width:240px;">
+            <tbody>
+                <tr>
+                    <th style="text-align:left;padding:4px 24px 4px 0;{{ $label }}">Subtotal:</th>
+                    <td style="padding:4px 0;text-align:right;">${{ number_format((float) $order->price, 2) }}</td>
+                </tr>
+                @if (filled($order->cupon))
                     <tr>
-                        <th class="py-1 pr-6 text-left font-semibold">Subtotal:</th>
-                        <td class="py-1">${{ number_format((float) $order->price, 2) }}</td>
+                        <th style="text-align:left;padding:4px 24px 4px 0;{{ $label }}">Coupon:</th>
+                        <td style="padding:4px 0;text-align:right;">{{ $order->cupon }}</td>
                     </tr>
-                    @if (filled($order->cupon))
-                        <tr>
-                            <th class="py-1 pr-6 text-left font-semibold">Coupon:</th>
-                            <td class="py-1">{{ $order->cupon }}</td>
-                        </tr>
-                        <tr>
-                            <th class="py-1 pr-6 text-left font-semibold">Discount:</th>
-                            <td class="py-1">- ${{ number_format($discount, 2) }}</td>
-                        </tr>
-                    @endif
-                    <tr class="border-t border-gray-200 dark:border-white/10">
-                        <th class="py-1 pr-6 text-left font-semibold">Total:</th>
-                        <td class="py-1 font-semibold">${{ number_format($paid, 2) }}</td>
+                    <tr>
+                        <th style="text-align:left;padding:4px 24px 4px 0;{{ $label }}">Discount:</th>
+                        <td style="padding:4px 0;text-align:right;">- ${{ number_format($discount, 2) }}</td>
                     </tr>
-                </tbody>
-            </table>
-        </div>
+                @endif
+                <tr>
+                    <th style="text-align:left;padding:8px 24px 4px 0;border-top:1px solid #e5e7eb;font-weight:700;">Total:</th>
+                    <td style="padding:8px 0 4px;border-top:1px solid #e5e7eb;text-align:right;font-weight:700;">${{ number_format($paid, 2) }}</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>

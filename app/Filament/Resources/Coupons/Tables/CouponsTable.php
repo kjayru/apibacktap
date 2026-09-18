@@ -4,8 +4,8 @@ namespace App\Filament\Resources\Coupons\Tables;
 
 use App\Models\CourseOrder;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -18,6 +18,10 @@ class CouponsTable
             // El primero de la lista debe ser el último registro creado.
             ->defaultSort('id', 'desc')
             ->columns([
+                // Numeración de la lista, como en producción (#1652).
+                TextColumn::make('index')
+                    ->label('#')
+                    ->rowIndex(),
                 TextColumn::make('cupon')
                     ->label('Coupon')
                     ->searchable(),

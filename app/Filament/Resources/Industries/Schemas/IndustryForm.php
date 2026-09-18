@@ -6,7 +6,6 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
 
 class IndustryForm
@@ -23,13 +22,13 @@ class IndustryForm
                     ->disk('public')
                     ->directory('banner')
                     ->image()
-                    ->helperText('Medida sugerida: 1920 x 480 px.'),
+                    ->helperText('Suggested size: 720 x 580 px.'),
                 FileUpload::make('card')
                     ->label('Card')
                     ->disk('public')
                     ->directory('card')
                     ->image()
-                    ->helperText('Medida sugerida: 600 x 400 px.'),
+                    ->helperText('Suggested size: 550 x 230 px.'),
                 RichEditor::make('contenido')
                     ->label('Content')
                     ->required()

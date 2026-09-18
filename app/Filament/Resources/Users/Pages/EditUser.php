@@ -8,7 +8,6 @@ use App\Models\UserCourse;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -51,7 +50,7 @@ class EditUser extends EditRecord
 
                     $course = Course::query()->findOrFail($data['course_id']);
 
-                    $userCourse = new UserCourse();
+                    $userCourse = new UserCourse;
                     $userCourse->user_id = $this->record->id;
                     $userCourse->course_id = $course->id;
                     $userCourse->fecha_inicio = Carbon::now()->format('Y-m-d');
@@ -64,7 +63,6 @@ class EditUser extends EditRecord
                         ->success()
                         ->send();
                 }),
-            ViewAction::make(),
             DeleteAction::make(),
         ];
     }
