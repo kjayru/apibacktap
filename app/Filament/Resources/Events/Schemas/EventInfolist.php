@@ -26,10 +26,6 @@ class EventInfolist
                 TextEntry::make('start_hour')
                     ->label('Start time')
                     ->time(),
-                TextEntry::make('created_at')
-                    ->label('Date')
-                    ->dateTime('M d, Y')
-                    ->placeholder('-'),
                 TextEntry::make('description')
                     ->label('Description')
                     ->html()

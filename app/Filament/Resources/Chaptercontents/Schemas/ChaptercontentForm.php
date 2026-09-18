@@ -44,7 +44,7 @@ class ChaptercontentForm
                 ->disk('public')
                 ->directory('poster')
                 ->image()
-                ->helperText('Medida sugerida: 1280 x 720 px.')
+                ->helperText('Suggested size: 1280 x 720 px.')
                 ->required(),
             FileUpload::make('audio')
                 ->label('Audio')
@@ -52,7 +52,7 @@ class ChaptercontentForm
                 ->directory('audio')
                 ->acceptedFileTypes(['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'])
                 ->maxSize(512000)
-                ->helperText('MP3, WAV u OGG. Peso máximo 500 MB. Opcional.'),
+                ->helperText('MP3, WAV or OGG. Maximum size 500 MB. Optional.'),
             $withChapter
                 ? Select::make('chapter_id')
                     ->label('Chapter')

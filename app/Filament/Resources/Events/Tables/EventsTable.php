@@ -3,11 +3,12 @@
 namespace App\Filament\Resources\Events\Tables;
 
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class EventsTable
 {
@@ -23,8 +24,13 @@ class EventsTable
                 TextColumn::make('start_date')
                     ->label('Start date')
                     ->date('M d, Y')
-                    // searchable además de sortable: buscar por fecha no devolvía nada.
-                    ->searchable()
+                    // Se busca por lo que se ve en la tabla ("Dec 16, 2023") y también por
+                    // el valor guardado ("2023-12-16"). Comparar sólo contra el valor
+                    // guardado no encontraba nada escribiendo la fecha como aparece (#1408).
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query
+                        ->where(fn (Builder $query): Builder => $query
+                            ->whereRaw("DATE_FORMAT(start_date, '%b %d, %Y') LIKE ?", ["%{$search}%"])
+                            ->orWhere('start_date', 'like', "%{$search}%")))
                     ->sortable(),
                 TextColumn::make('price')
                     ->label('Price')

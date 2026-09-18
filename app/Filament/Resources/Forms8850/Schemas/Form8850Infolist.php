@@ -49,7 +49,7 @@ class Form8850Infolist
                             ->listWithLineBreaks()
                             ->bulleted()
                             ->state(fn (Form $record): array => array_map(
-                                fn (int $n): string => $n . '. ' . (Form::STATEMENTS[$n] ?? 'Unknown statement'),
+                                fn (int $n): string => Form::statementNumber($n).'. '.(Form::STATEMENTS[$n] ?? 'Unknown statement'),
                                 $record->checked_statements,
                             ))
                             ->placeholder('The applicant did not check any statement.'),

@@ -41,7 +41,7 @@ class Forms8850Table
                 TextColumn::make('checked_statements')
                     ->label('Statements')
                     ->badge()
-                    ->state(fn (Form $record): array => $record->checked_statements)
+                    ->state(fn (Form $record): array => array_map(Form::statementNumber(...), $record->checked_statements))
                     ->placeholder('-'),
                 TextColumn::make('created_at')
                     ->label('Date')

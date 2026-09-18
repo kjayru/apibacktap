@@ -6,6 +6,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
 
 class EventForm
@@ -21,6 +22,9 @@ class EventForm
     {
         return $schema
             ->components([
+                // Qué significa el asterisco (#1666).
+                Text::make('Fields marked with * are required.')
+                    ->columnSpanFull(),
                 TextInput::make('title')
                     ->label('Title')
                     ->required(),

@@ -5,9 +5,11 @@ namespace App\Models\Concerns;
 trait HasForm8850Statements
 {
     /**
-     * Los enunciados que el solicitante marca en el formulario 8850 de la web. No hay
-     * un 6: el formulario nunca lo ha tenido, y se respeta la numeración para que
-     * coincida con el impreso oficial.
+     * Los enunciados que el solicitante marca en el formulario 8850 de la web, por el
+     * valor que guarda cada casilla. El formulario antiguo usaba 7 y 8 para las dos
+     * últimas, que en el impreso oficial del IRS son las líneas 6 y 7; se conservan esas
+     * claves para leer los envíos guardados, pero al mostrarlas se numera por posición
+     * con statementNumber(), o el listado se saltaba el 6 (#1671, #1672).
      *
      * @var array<int, string>
      */
@@ -20,6 +22,14 @@ trait HasForm8850Statements
         7 => 'Member of a family that received TANF payments for at least the past 18 months, or that stopped being eligible for them.',
         8 => 'In a period of unemployment of at least 27 consecutive weeks, having received unemployment compensation for all or part of it.',
     ];
+
+    /** Número de línea del impreso oficial para el valor guardado: 7 → 6, 8 → 7. */
+    public static function statementNumber(int $value): int
+    {
+        $position = array_search($value, array_keys(self::STATEMENTS), true);
+
+        return $position === false ? $value : $position + 1;
+    }
 
     /**
      * La columna guarda el array de casillas marcadas con serialize(). Se lee sin

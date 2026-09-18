@@ -18,9 +18,14 @@ class CouponForm
                     ->disabled()
                     ->dehydrated(false)
                     ->visibleOn('edit'),
+                // Sin type="number": el navegador deja escribir la "e" de la notación
+                // científica (#1657). La máscara sólo admite cifras al teclear.
                 TextInput::make('monto_descuento')
                     ->label('Discount mount %')
-                    ->numeric()
+                    ->inputMode('numeric')
+                    ->mask('999')
+                    // La regla y no ->integer(), que vuelve a poner type="number".
+                    ->rule('integer')
                     ->minValue(1)
                     ->maxValue(100)
                     ->suffix('%')
