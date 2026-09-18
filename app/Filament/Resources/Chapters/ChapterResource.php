@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Chapters;
 use App\Filament\Resources\Chapters\Pages\CreateChapter;
 use App\Filament\Resources\Chapters\Pages\EditChapter;
 use App\Filament\Resources\Chapters\Pages\ListChapters;
-use App\Filament\Resources\Chapters\Pages\ViewChapter;
 use App\Filament\Resources\Chapters\RelationManagers\ChaptercontentsRelationManager;
 use App\Filament\Resources\Chapters\RelationManagers\ChapterquizzesRelationManager;
 use App\Filament\Resources\Chapters\Schemas\ChapterForm;
@@ -73,7 +72,6 @@ class ChapterResource extends Resource
         return [
             'index' => ListChapters::route('/'),
             'create' => CreateChapter::route('/create'),
-            'view' => ViewChapter::route('/{record}'),
             'edit' => EditChapter::route('/{record}/edit'),
         ];
     }

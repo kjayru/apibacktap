@@ -5,7 +5,6 @@ namespace App\Filament\Resources\ExamQuestions;
 use App\Filament\Resources\ExamQuestions\Pages\CreateExamQuestion;
 use App\Filament\Resources\ExamQuestions\Pages\EditExamQuestion;
 use App\Filament\Resources\ExamQuestions\Pages\ListExamQuestions;
-use App\Filament\Resources\ExamQuestions\Pages\ViewExamQuestion;
 use App\Filament\Resources\ExamQuestions\RelationManagers\ExamquestionoptionsRelationManager;
 use App\Filament\Resources\ExamQuestions\Schemas\ExamQuestionForm;
 use App\Filament\Resources\ExamQuestions\Schemas\ExamQuestionInfolist;
@@ -52,7 +51,6 @@ class ExamQuestionResource extends Resource
         return [
             'index' => ListExamQuestions::route('/'),
             'create' => CreateExamQuestion::route('/create'),
-            'view' => ViewExamQuestion::route('/{record}'),
             'edit' => EditExamQuestion::route('/{record}/edit'),
         ];
     }

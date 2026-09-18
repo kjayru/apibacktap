@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Chapters\Pages;
 
 use App\Filament\Resources\Chapters\ChapterResource;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditChapter extends EditRecord
@@ -14,7 +13,6 @@ class EditChapter extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            ViewAction::make(),
             DeleteAction::make(),
         ];
     }

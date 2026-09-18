@@ -2,19 +2,13 @@
 
 namespace App\Filament\Resources\Contacts\Pages;
 
+use App\Filament\Concerns\CreatesAndReturnsToList;
 use App\Filament\Resources\Contacts\ContactResource;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateContact extends CreateRecord
 {
-    protected static string $resource = ContactResource::class;
+    use CreatesAndReturnsToList;
 
-    /** El cliente pidió quitar "Create & create another" del panel. */
-    protected function getFormActions(): array
-    {
-        return [
-            $this->getCreateFormAction()->formId('form'),
-            $this->getCancelFormAction()->formId('form'),
-        ];
-    }
+    protected static string $resource = ContactResource::class;
 }

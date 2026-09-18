@@ -58,7 +58,8 @@ class ReferencesRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->createAnother(false),
             ])
             ->recordActions([
                 EditAction::make(),

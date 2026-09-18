@@ -5,9 +5,8 @@ namespace App\Filament\Resources\Courses\Pages;
 use App\Filament\Resources\Courses\CourseResource;
 use App\Models\Exam;
 use App\Models\ExamCourse;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\Action;
-use Filament\Actions\ViewAction;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -45,7 +44,6 @@ class EditCourse extends EditRecord
                         ->success()
                         ->send();
                 }),
-            ViewAction::make(),
             DeleteAction::make(),
         ];
     }

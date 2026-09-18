@@ -5,7 +5,6 @@ namespace App\Filament\Resources\ExamQuestionOptions;
 use App\Filament\Resources\ExamQuestionOptions\Pages\CreateExamQuestionOption;
 use App\Filament\Resources\ExamQuestionOptions\Pages\EditExamQuestionOption;
 use App\Filament\Resources\ExamQuestionOptions\Pages\ListExamQuestionOptions;
-use App\Filament\Resources\ExamQuestionOptions\Pages\ViewExamQuestionOption;
 use App\Filament\Resources\ExamQuestionOptions\Schemas\ExamQuestionOptionForm;
 use App\Filament\Resources\ExamQuestionOptions\Schemas\ExamQuestionOptionInfolist;
 use App\Filament\Resources\ExamQuestionOptions\Tables\ExamQuestionOptionsTable;
@@ -51,7 +50,6 @@ class ExamQuestionOptionResource extends Resource
         return [
             'index' => ListExamQuestionOptions::route('/'),
             'create' => CreateExamQuestionOption::route('/create'),
-            'view' => ViewExamQuestionOption::route('/{record}'),
             'edit' => EditExamQuestionOption::route('/{record}/edit'),
         ];
     }
