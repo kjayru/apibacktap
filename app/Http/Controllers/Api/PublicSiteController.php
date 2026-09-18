@@ -212,7 +212,7 @@ class PublicSiteController extends Controller
             'origen' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $contact = new Contact();
+        $contact = new Contact;
         $contact->name = $validated['name'];
         $contact->email = $validated['email'];
         $contact->phone = $validated['phone'] ?? null;
@@ -262,14 +262,14 @@ class PublicSiteController extends Controller
         }
 
         $information = DB::transaction(function () use ($request, $validated): Information {
-            $inf = new Information();
+            $inf = new Information;
             foreach (['lastname', 'firstname', 'mi', 'date', 'address', 'apartment', 'city', 'state', 'zipcode', 'phone', 'email', 'birthday', 'socialnumber', 'placebirth', 'appliedpay', 'whichshift', 'citizen', 'authorized', 'worked', 'when', 'convicted', 'explain1', 'indictment', 'explain2'] as $field) {
                 $inf->{$field} = $request->input($field);
             }
             $inf->whichday = serialize($this->dayMap($request->input('days', [])));
             $inf->save();
 
-            $education = new Education();
+            $education = new Education;
             foreach (['graduatehigh', 'hightschool', 'highfrom', 'hightto', 'graduatecollage', 'collaganame', 'collagefrom', 'collageto', 'whatmayor', 'completed', 'activecard', 'officer', 'firearm', 'holster', 'others'] as $field) {
                 $education->{$field} = $request->input($field);
             }
@@ -280,7 +280,7 @@ class PublicSiteController extends Controller
                 if (! filled($fullname)) {
                     continue;
                 }
-                $reference = new Reference();
+                $reference = new Reference;
                 $reference->fullname = $fullname;
                 $reference->relationship = $request->input("relationship.{$index}");
                 $reference->companyref = $request->input("companyref.{$index}");
@@ -294,7 +294,7 @@ class PublicSiteController extends Controller
                 if (! filled($company)) {
                     continue;
                 }
-                $employment = new EmploymentModel();
+                $employment = new EmploymentModel;
                 $employment->company = $company;
                 foreach (['phoneemp', 'addressempl', 'supervisor', 'jobtitle', 'starting', 'ending', 'empfrom', 'empto', 'reason'] as $field) {
                     $column = match ($field) {
@@ -304,12 +304,12 @@ class PublicSiteController extends Controller
                     };
                     $employment->{$column} = $request->input("{$field}.{$index}");
                 }
-                $employment->references = $request->input('references' . ($index + 1));
+                $employment->references = $request->input('references'.($index + 1));
                 $employment->information_id = $inf->id;
                 $employment->save();
             }
 
-            $military = new Military();
+            $military = new Military;
             $military->branch = $request->input('branch');
             $military->from = $request->input('frommilitary');
             $military->to = $request->input('tomilitary');
@@ -319,7 +319,7 @@ class PublicSiteController extends Controller
             $military->information_id = $inf->id;
             $military->save();
 
-            $disclaimer = new Disclaimer();
+            $disclaimer = new Disclaimer;
             $disclaimer->signature = $validated['signature'] ?? null;
             $disclaimer->datedisclamer = $validated['datedisclamer'] ?? null;
             $disclaimer->information_id = $inf->id;
@@ -327,8 +327,10 @@ class PublicSiteController extends Controller
 
             if ($request->hasFile('fileid')) {
                 foreach ($request->file('fileid') as $file) {
-                    $archivo = new Archivo();
-                    $archivo->file = Storage::putFile('applied', $file);
+                    $archivo = new Archivo;
+                    // En el disco público, como los del sitio anterior: en el disco por
+                    // defecto quedaban fuera de /storage y el admin no podía abrirlos.
+                    $archivo->file = Storage::disk('public')->putFile('applied', $file);
                     $archivo->disclaimer_id = $disclaimer->id;
                     $archivo->save();
                 }
@@ -360,7 +362,7 @@ class PublicSiteController extends Controller
             return response()->json(['success' => false, 'message' => 'reCAPTCHA verification failed. Please try again.'], 422);
         }
 
-        $form = new Form();
+        $form = new Form;
         foreach (['yourname', 'socialnumber', 'address', 'citystate', 'country', 'telephone', 'birthday'] as $field) {
             $form->{$field} = $validated[$field];
         }
@@ -434,7 +436,7 @@ class PublicSiteController extends Controller
             return $path;
         }
 
-        return url('/storage/' . ltrim($path, '/'));
+        return url('/storage/'.ltrim($path, '/'));
     }
 
     private function ok(mixed $data): JsonResponse
