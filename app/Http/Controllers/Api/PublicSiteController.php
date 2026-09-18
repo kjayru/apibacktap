@@ -149,7 +149,7 @@ class PublicSiteController extends Controller
             'title' => $post->titulo,
             'slug' => $post->slug,
             'summary' => $post->resumen,
-            'content_html' => $post->contenido,
+            'content_html' => $this->embedVideoLinks($post->contenido),
             'card_image_url' => $this->assetUrl($post->card),
             'banner_image_url' => $this->assetUrl($post->banner),
             'published_at' => optional($post->created_at)->toISOString(),
@@ -437,6 +437,30 @@ class PublicSiteController extends Controller
         }
 
         return url('/storage/'.ltrim($path, '/'));
+    }
+
+    /**
+     * Los posts antiguos traían el vídeo como <iframe>; el editor del admin nuevo no los
+     * admite, así que ahora se pega el enlace de YouTube. Al servir el post, cada enlace
+     * de YouTube (o una URL suelta en su propio párrafo) se convierte en el mismo
+     * reproductor que usaban los antiguos (#1687).
+     */
+    private function embedVideoLinks(?string $html): ?string
+    {
+        if (blank($html) || ! str_contains($html, 'youtu')) {
+            return $html;
+        }
+
+        $id = '(?:https?:)?\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:[^"<\s]*&(?:amp;)?)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})[^"<\s]*';
+
+        $player = fn (array $m): string => '<iframe width="560" height="315" style="max-width:100%;aspect-ratio:16/9;height:auto;"'
+            .' src="https://www.youtube.com/embed/'.$m[1].'" title="YouTube video player" frameborder="0"'
+            .' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"'
+            .' referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>';
+
+        $html = preg_replace_callback('/<a\b[^>]*href="'.$id.'"[^>]*>.*?<\/a>/is', $player, $html);
+
+        return preg_replace_callback('/<p>\s*'.$id.'\s*<\/p>/i', fn (array $m): string => '<p>'.$player($m).'</p>', $html);
     }
 
     private function ok(mixed $data): JsonResponse
