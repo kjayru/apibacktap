@@ -65,6 +65,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/courses/{course:slug}/chapters/{chapter:slug}/quiz/reset', [QuizController::class, 'reset'])->withoutScopedBindings();
 
         Route::get('/courses/{course:slug}/exam', [ExamController::class, 'show']);
+        Route::post('/courses/{course:slug}/exam/start', [ExamController::class, 'start']);
         Route::post('/courses/{course:slug}/exam', [ExamController::class, 'submit']);
         Route::post('/courses/{course:slug}/exam/reset', [ExamController::class, 'reset']);
 

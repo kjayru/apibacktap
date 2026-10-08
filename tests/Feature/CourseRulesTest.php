@@ -119,6 +119,70 @@ class CourseRulesTest extends TestCase
         $this->assertTrue($this->getJson('/api/v1/learn/courses/basic')->json('data.can_repurchase'));
     }
 
+    public function test_an_abandoned_exam_counts_as_a_used_attempt_once_the_time_is_up(): void
+    {
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+
+        $this->postJson('/api/v1/learn/courses/basic/exam/start')->assertOk()
+            ->assertJsonPath('data.attempts_used', 0);
+
+        // El alumno cierra la ventana: nadie avisa de que se acabó el tiempo.
+        Carbon::setTestNow(Carbon::now()->addHours(3));
+
+        $this->getJson('/api/v1/learn/courses/basic/exam')->assertOk()
+            ->assertJsonPath('data.attempts_used', 1)
+            ->assertJsonPath('data.attempts_left', 2)
+            ->assertJsonPath('data.in_progress', false);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_answers_sent_after_the_deadline_are_not_graded(): void
+    {
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+
+        $this->postJson('/api/v1/learn/courses/basic/exam/start')->assertOk();
+
+        $correct = DB::table('exam_question_options')->where('resultado', 1)->orderBy('id')->get();
+
+        Carbon::setTestNow(Carbon::now()->addHours(3));
+
+        $response = $this->postJson('/api/v1/learn/courses/basic/exam', [
+            'answers' => $correct->map(fn ($option) => [
+                'exam_question_id' => $option->exam_question_id,
+                'exam_question_option_id' => $option->id,
+            ])->all(),
+        ])->assertOk();
+
+        $this->assertTrue($response->json('data.expired'));
+        $this->assertFalse($response->json('data.completed'));
+        $this->assertSame(1, $response->json('data.attempts_used'));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_reloading_the_exam_does_not_give_a_fresh_clock(): void
+    {
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+
+        $this->postJson('/api/v1/learn/courses/basic/exam/start')->assertOk()
+            ->assertJsonPath('data.remaining_time', '01:00:00');
+
+        Carbon::setTestNow(Carbon::now()->addMinutes(30));
+
+        $this->getJson('/api/v1/learn/courses/basic/exam')->assertOk()
+            ->assertJsonPath('data.in_progress', true)
+            ->assertJsonPath('data.remaining_time', '00:30:00');
+
+        Carbon::setTestNow();
+    }
+
     public function test_expired_enrollment_blocks_access_and_allows_repurchase(): void
     {
         $this->enroll(['fecha_inicio' => Carbon::now()->subDays(31)->toDateString(), 'dias_activo' => 30]);
@@ -367,6 +431,7 @@ class CourseRulesTest extends TestCase
             $t->unsignedBigInteger('user_course_id');
             $t->unsignedBigInteger('exam_id');
             $t->string('tiempo')->nullable();
+            $t->timestamp('started_at')->nullable();
             $t->integer('intentos')->nullable();
             $t->integer('resultado')->nullable()->default(0);
             $t->integer('complete')->nullable();
