@@ -29,9 +29,11 @@ class ExamController extends Controller
         $exam = $this->findExam($course);
 
         $this->ensureAllChaptersReady($course, $userCourse);
-        $this->ensureAttemptsLeft($userCourse);
 
-        $attempt = UserCourseExam::where('user_course_id', $userCourse->id)->where('exam_id', $exam->id)->first();
+        $this->closeAttemptIfTimeIsUp($userCourse, $exam);
+        $attempt = $this->attemptInProgress($userCourse, $exam);
+
+        $this->ensureAttemptsLeft($userCourse);
 
         $questions = ExamQuestion::where('exam_id', $exam->id)->orderBy('id')->with('examquestionoptions')->get();
 
@@ -47,7 +49,8 @@ class ExamController extends Controller
             'attempts_left' => max(0, CourseAccessService::MAX_EXAM_ATTEMPTS - (int) $userCourse->intentos),
             'max_attempts' => CourseAccessService::MAX_EXAM_ATTEMPTS,
             'approved' => (bool) $userCourse->aprobado,
-            'remaining_time' => $attempt && (int) $attempt->complete !== 1 ? $attempt->tiempo : null,
+            'in_progress' => (bool) ($attempt && (int) $attempt->complete !== 1),
+            'remaining_time' => $this->remainingTime($attempt, $exam),
             'total_questions' => $questions->count(),
             'questions' => $questions->map(fn (ExamQuestion $question) => [
                 'id' => $question->id,
@@ -58,6 +61,51 @@ class ExamController extends Controller
                 ])->values(),
             ])->values(),
         ]);
+    }
+
+    /**
+     * El cronómetro arranca aquí, no en el navegador: el alumno acepta las instrucciones y
+     * el servidor anota la hora de inicio. Así el intento vence aunque cierre la ventana
+     * (#1824), y recargar la página ya no regala dos horas nuevas.
+     */
+    public function start(Request $request, Course $course): JsonResponse
+    {
+        $userCourse = $this->access->resolve($request->user(), $course);
+        $exam = $this->findExam($course);
+
+        $this->ensureAllChaptersReady($course, $userCourse);
+
+        if ((int) $userCourse->aprobado === 1) {
+            return response()->json(['success' => false, 'message' => 'You already have the course approved.'], 422);
+        }
+
+        $this->closeAttemptIfTimeIsUp($userCourse, $exam);
+
+        $this->ensureAttemptsLeft($userCourse);
+
+        $attempt = UserCourseExam::where('user_course_id', $userCourse->id)->where('exam_id', $exam->id)->first();
+
+        if (! $attempt) {
+            $attempt = UserCourseExam::create([
+                'user_course_id' => $userCourse->id,
+                'exam_id' => $exam->id,
+                'intentos' => 0,
+                'complete' => 0,
+                'resultado' => 0,
+                'tiempo' => $this->durationLabel($exam),
+                'started_at' => now(),
+            ]);
+        } elseif ((int) $attempt->complete === 1) {
+            // Intento anterior ya entregado: éste empieza de cero, con su hora.
+            $attempt->update(['complete' => 0, 'evento' => null, 'tiempo' => $this->durationLabel($exam), 'started_at' => now()]);
+        } elseif (! $attempt->started_at) {
+            // Intento abierto por una versión anterior, sin hora de inicio.
+            $attempt->update(['started_at' => now()]);
+        }
+
+        return $this->ok([
+            'remaining_time' => $this->remainingTime($attempt->refresh(), $exam),
+        ] + $this->attemptsPayload($userCourse));
     }
 
     public function submit(Request $request, Course $course): JsonResponse
@@ -78,18 +126,28 @@ class ExamController extends Controller
             return response()->json(['success' => false, 'message' => 'You already have the course approved.'], 422);
         }
 
+        // El plazo manda sobre lo que diga el navegador: una entrega fuera de hora no se
+        // corrige, se cierra como intento agotado.
+        if ($this->closeAttemptIfTimeIsUp($userCourse, $exam)) {
+            return $this->ok([
+                'completed' => false,
+                'expired' => true,
+                'message' => 'Time is up.',
+            ] + $this->attemptsPayload($userCourse->refresh()));
+        }
+
         $this->ensureAttemptsLeft($userCourse);
 
-        $attempt = UserCourseExam::firstOrCreate(
+        $attempt = $this->attemptInProgress($userCourse, $exam) ?: UserCourseExam::firstOrCreate(
             ['user_course_id' => $userCourse->id, 'exam_id' => $exam->id],
-            ['intentos' => 0, 'complete' => 0, 'resultado' => 0, 'tiempo' => '00:00:00'],
+            ['intentos' => 0, 'complete' => 0, 'resultado' => 0, 'tiempo' => '00:00:00', 'started_at' => now()],
         );
 
         $attemptNumber = (int) $attempt->intentos + 1;
 
         // Se acabó el tiempo: cuenta como intento fallido, igual que entregar en blanco.
         if ($validated['expired'] ?? false) {
-            $attempt->update(['intentos' => $attemptNumber, 'tiempo' => $validated['remaining_time'] ?? '00:00:00', 'resultado' => 0, 'complete' => 1, 'evento' => 'excedio']);
+            $attempt->update(['intentos' => $attemptNumber, 'tiempo' => $validated['remaining_time'] ?? '00:00:00', 'resultado' => 0, 'complete' => 1, 'evento' => 'excedio', 'started_at' => null]);
             $userCourse->update(['aprobado' => 0, 'intentos' => (int) $userCourse->intentos + 1]);
 
             return $this->ok([
@@ -129,7 +187,7 @@ class ExamController extends Controller
                 }
             }
 
-            $attempt->update(['intentos' => $attemptNumber, 'complete' => 1, 'tiempo' => $validated['remaining_time'] ?? $attempt->tiempo]);
+            $attempt->update(['intentos' => $attemptNumber, 'complete' => 1, 'tiempo' => $validated['remaining_time'] ?? $attempt->tiempo, 'started_at' => null]);
         });
 
         $totalQuestions = $questions->count();
@@ -229,5 +287,70 @@ class ExamController extends Controller
     private function ok(mixed $data, int $status = 200): JsonResponse
     {
         return response()->json(['success' => true, 'data' => $data], $status);
+    }
+
+    /** El intento abierto, si lo hay: entregado no cuenta. */
+    private function attemptInProgress(UserCourse $userCourse, Exam $exam): ?UserCourseExam
+    {
+        $attempt = UserCourseExam::where('user_course_id', $userCourse->id)->where('exam_id', $exam->id)->first();
+
+        return $attempt && (int) $attempt->complete !== 1 ? $attempt : null;
+    }
+
+    /**
+     * Cierra el intento abierto cuyo plazo venció y lo cuenta como fallido. Devuelve true
+     * si lo hizo. Antes esto dependía del aviso del navegador, así que cerrar la ventana
+     * dejaba el intento sin contar (#1824).
+     */
+    private function closeAttemptIfTimeIsUp(UserCourse $userCourse, Exam $exam): bool
+    {
+        $attempt = $this->attemptInProgress($userCourse, $exam);
+
+        if (! $attempt || ! $attempt->started_at || now()->lt($this->deadline($attempt, $exam))) {
+            return false;
+        }
+
+        $attempt->update([
+            'intentos' => (int) $attempt->intentos + 1,
+            'tiempo' => '00:00:00',
+            'resultado' => 0,
+            'complete' => 1,
+            'evento' => 'excedio',
+            'started_at' => null,
+        ]);
+
+        $userCourse->update(['aprobado' => 0, 'intentos' => (int) $userCourse->intentos + 1]);
+        $userCourse->refresh();
+
+        return true;
+    }
+
+    private function deadline(UserCourseExam $attempt, Exam $exam): \Illuminate\Support\Carbon
+    {
+        return $attempt->started_at->copy()->addSeconds($this->durationSeconds($exam));
+    }
+
+    private function durationSeconds(Exam $exam): int
+    {
+        return $exam->duration ? ((int) $exam->duration * 60) : 7200;
+    }
+
+    private function durationLabel(Exam $exam): string
+    {
+        return gmdate('H:i:s', $this->durationSeconds($exam));
+    }
+
+    /** Lo que queda de examen según el reloj del servidor, en HH:MM:SS. */
+    private function remainingTime(?UserCourseExam $attempt, Exam $exam): ?string
+    {
+        if (! $attempt || (int) $attempt->complete === 1) {
+            return null;
+        }
+
+        if (! $attempt->started_at) {
+            return $attempt->tiempo;
+        }
+
+        return gmdate('H:i:s', max(0, (int) ceil(now()->diffInSeconds($this->deadline($attempt, $exam), false))));
     }
 }

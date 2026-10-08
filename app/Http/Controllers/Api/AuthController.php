@@ -14,6 +14,8 @@ use Illuminate\Validation\Rules;
 
 class AuthController extends Controller
 {
+    private const STUDENT_ROLE = 'usuario';
+
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -29,6 +31,10 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
+
+        // El panel lista a los alumnos por este rol, igual que el sitio anterior: sin él,
+        // quien se registra desde el front no aparece nunca en "User who is taking" (#1825).
+        $user->assignRole(self::STUDENT_ROLE);
 
         $token = $user->createToken('spa')->plainTextToken;
 

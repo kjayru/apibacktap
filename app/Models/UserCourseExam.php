@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['user_course_id', 'exam_id', 'tiempo', 'intentos', 'resultado', 'complete', 'evento'])]
+#[Fillable(['user_course_id', 'exam_id', 'tiempo', 'started_at', 'intentos', 'resultado', 'complete', 'evento'])]
 class UserCourseExam extends Model
 {
 
@@ -15,12 +15,17 @@ class UserCourseExam extends Model
         'user_course_id',
         'exam_id',
         'tiempo',
+        'started_at',
         'intentos',
         'resultado',
         'complete',
         'evento',
     ];
     use HasFactory;
+
+    protected $casts = [
+        'started_at' => 'datetime',
+    ];
 
     public function user(){
         return $this->belongsTo(User::class);
