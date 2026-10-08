@@ -28,6 +28,13 @@ use Illuminate\Support\Str;
 
 class PublicSiteController extends Controller
 {
+    /** Columnas de `informations` que el esquema heredado declara sin nulos. */
+    private const APPLICANT_REQUIRED_COLUMNS = [
+        'lastname', 'firstname', 'mi', 'date', 'address', 'city', 'state', 'zipcode',
+        'phone', 'email', 'birthday', 'socialnumber', 'placebirth', 'appliedpay',
+        'whichshift', 'citizen', 'authorized', 'worked', 'convicted', 'indictment',
+    ];
+
     public function home(): JsonResponse
     {
         $categories = Category::orderBy('orden')->get();
@@ -264,7 +271,13 @@ class PublicSiteController extends Controller
         $information = DB::transaction(function () use ($request, $validated): Information {
             $inf = new Information;
             foreach (['lastname', 'firstname', 'mi', 'date', 'address', 'apartment', 'city', 'state', 'zipcode', 'phone', 'email', 'birthday', 'socialnumber', 'placebirth', 'appliedpay', 'whichshift', 'citizen', 'authorized', 'worked', 'when', 'convicted', 'explain1', 'indictment', 'explain2'] as $field) {
-                $inf->{$field} = $request->input($field);
+                $value = $request->input($field);
+
+                // La tabla viene del sitio anterior y varias columnas no admiten nulos.
+                // Un campo condicional que no aplica (por ejemplo "authorized" cuando sí
+                // es ciudadano) llegaba vacío y la solicitud se perdía con error de
+                // servidor (#1774).
+                $inf->{$field} = $value ?? (in_array($field, self::APPLICANT_REQUIRED_COLUMNS, true) ? '' : null);
             }
             $inf->whichday = serialize($this->dayMap($request->input('days', [])));
             $inf->save();
