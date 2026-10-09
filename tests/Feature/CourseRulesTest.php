@@ -119,6 +119,27 @@ class CourseRulesTest extends TestCase
         $this->assertTrue($this->getJson('/api/v1/learn/courses/basic')->json('data.can_repurchase'));
     }
 
+    public function test_a_chapter_is_read_from_its_own_course_even_if_another_course_repeats_the_name(): void
+    {
+        $this->enroll();
+        $this->enroll(['course_id' => 2]);
+        Sanctum::actingAs($this->user);
+
+        // Los cursos repiten los mismos títulos de capítulo y contenido. Al buscarlos
+        // sueltos salía siempre el del primer curso, así que el alumno del otro curso se
+        // quedaba con "contenido no encontrado" y no podía avanzar (#1803).
+        $this->getJson('/api/v1/learn/courses/other/chapters/chapter-1/contents/content-1')
+            ->assertOk()
+            ->assertJsonPath('data.id', 11);
+
+        $this->getJson('/api/v1/learn/courses/basic/chapters/chapter-1/contents/content-1')
+            ->assertOk()
+            ->assertJsonPath('data.id', 1);
+
+        $this->postJson('/api/v1/learn/courses/other/chapters/chapter-1/contents/content-1/complete')
+            ->assertOk();
+    }
+
     public function test_an_abandoned_exam_counts_as_a_used_attempt_once_the_time_is_up(): void
     {
         $this->enroll();
@@ -283,6 +304,16 @@ class CourseRulesTest extends TestCase
         DB::table('chaptercontents')->insert([
             ['id' => 1, 'chapter_id' => 1, 'titulo' => 'Content 1', 'slug' => 'content-1', 'order' => 1],
             ['id' => 2, 'chapter_id' => 2, 'titulo' => 'Content 2', 'slug' => 'content-2', 'order' => 1],
+        ]);
+
+        // Otro curso con capítulos y contenidos de igual nombre: así son los cursos
+        // reales, que repiten "Chapter 2: Introduction" y sus títulos (#1803).
+        Course::forceCreate(['titulo' => 'Other', 'slug' => 'other', 'precio' => 45, 'tiempovalido' => 30]);
+        DB::table('chapters')->insert([
+            ['id' => 11, 'course_id' => 2, 'title' => 'Chapter 1', 'slug' => 'chapter-1', 'order' => 1],
+        ]);
+        DB::table('chaptercontents')->insert([
+            ['id' => 11, 'chapter_id' => 11, 'titulo' => 'Content 1', 'slug' => 'content-1', 'order' => 1],
         ]);
 
         // Capítulo 1 con 4 preguntas de 2 opciones; el 2 sin quiz.

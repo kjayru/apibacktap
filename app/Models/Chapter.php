@@ -26,6 +26,17 @@ class Chapter extends Model
         return $this->belongsTo(Course::class);
     }
 
+    /**
+     * Mismo contenido que `chaptercontents`, con el nombre que Laravel busca al acotar
+     * la ruta `chapters/{chapter}/contents/{content}`: sin esto el contenido se buscaba
+     * en toda la base y, como los cursos repiten los mismos títulos, salía el de otro
+     * curso y el alumno veía "contenido no encontrado" (#1803).
+     */
+    public function contents()
+    {
+        return $this->hasMany(Chaptercontent::class, 'chapter_id');
+    }
+
     public function chaptercontents(){
         return $this->hasMany(Chaptercontent::class)->orderBy('order','asc');
     }

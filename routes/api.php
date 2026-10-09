@@ -50,19 +50,23 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/courses/{course:slug}/verify-access', [LearnController::class, 'verifyAccess']);
         Route::get('/courses/{course:slug}', [LearnController::class, 'courseDetail']);
         Route::post('/courses/{course:slug}/restart', [LearnController::class, 'restartCourse']);
+        // Acotados: el capítulo se busca dentro del curso y el contenido dentro del
+        // capítulo. Los cursos repiten títulos, así que buscarlos sueltos devolvía el
+        // de otro curso (#1803).
         Route::get(
             '/courses/{course:slug}/chapters/{chapter:slug}/contents/{content:slug}',
             [LearnController::class, 'contentDetail'],
-        )->withoutScopedBindings();
+        );
         Route::post(
             '/courses/{course:slug}/chapters/{chapter:slug}/contents/{content:slug}/complete',
             [LearnController::class, 'completeContent'],
-        )->withoutScopedBindings();
+        );
 
-        Route::get('/courses/{course:slug}/chapters/{chapter:slug}/quiz', [QuizController::class, 'show'])->withoutScopedBindings();
-        Route::post('/courses/{course:slug}/chapters/{chapter:slug}/quiz', [QuizController::class, 'answer'])->withoutScopedBindings();
-        Route::get('/courses/{course:slug}/chapters/{chapter:slug}/quiz/result', [QuizController::class, 'result'])->withoutScopedBindings();
-        Route::post('/courses/{course:slug}/chapters/{chapter:slug}/quiz/reset', [QuizController::class, 'reset'])->withoutScopedBindings();
+        // También acotados: el capítulo del quiz se busca dentro de su curso (#1803).
+        Route::get('/courses/{course:slug}/chapters/{chapter:slug}/quiz', [QuizController::class, 'show']);
+        Route::post('/courses/{course:slug}/chapters/{chapter:slug}/quiz', [QuizController::class, 'answer']);
+        Route::get('/courses/{course:slug}/chapters/{chapter:slug}/quiz/result', [QuizController::class, 'result']);
+        Route::post('/courses/{course:slug}/chapters/{chapter:slug}/quiz/reset', [QuizController::class, 'reset']);
 
         Route::get('/courses/{course:slug}/exam', [ExamController::class, 'show']);
         Route::post('/courses/{course:slug}/exam/start', [ExamController::class, 'start']);
