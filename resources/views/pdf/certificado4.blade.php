@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
         .contenedor{
             width:100%;
             height:1850px;
-            background:url('{{env('APP_URL')}}{{$certificado}}') no-repeat center center;
+            background:url('{{ $certificado }}') no-repeat center center;
             background-size: cover;
             position:absolute;
             top:0;

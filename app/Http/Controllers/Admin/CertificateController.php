@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\CertificateTemplate;
 use App\Models\UserCourse;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -18,19 +19,11 @@ class CertificateController extends Controller
 
         abort_unless($course && $user && $certification, 404);
 
-        $view = match ((int) $course->certification_id) {
-            1 => 'pdf.certificado1',
-            2 => 'pdf.certificado2',
-            3 => 'pdf.certificado3',
-            4 => 'pdf.certificado4',
-            default => 'pdf.index',
-        };
-
-        return Pdf::loadView($view, [
+        return Pdf::loadView(CertificateTemplate::forCourse($course), [
             'curso' => $course,
-            'user' => $user,
+            'user' => $user->load('profile'),
             'user_course' => $userCourse,
-            'certificado' => $certification->image,
+            'certificado' => CertificateTemplate::artworkPath($certification->image),
         ])->setOptions([
             'isHtml5ParserEnabled' => true,
             'isRemoteEnabled' => true,
