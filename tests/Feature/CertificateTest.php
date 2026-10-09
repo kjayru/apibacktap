@@ -49,6 +49,27 @@ class CertificateTest extends TestCase
         }
     }
 
+    /** El alumno recibe el certificado en el correo de aprobado, sin tener que entrar. */
+    public function test_passed_mail_carries_the_certificate(): void
+    {
+        $userCourse = $this->enrollment('certs/certificado2_psp36.png');
+
+        $attachments = (new \App\Mail\CoursePassed($userCourse, $userCourse->course))->attachments();
+
+        $this->assertCount(1, $attachments);
+        $this->assertSame('level-ii-certificate.pdf', $attachments[0]->as);
+        $this->assertSame('application/pdf', $attachments[0]->mime);
+    }
+
+    /** Sin certificado asignado al curso, el correo sale igual pero sin adjunto. */
+    public function test_passed_mail_without_certification_still_goes_out(): void
+    {
+        $userCourse = $this->enrollment('certs/certificado2_psp36.png');
+        $userCourse->course->setRelation('certification', null);
+
+        $this->assertSame([], (new \App\Mail\CoursePassed($userCourse, $userCourse->course))->attachments());
+    }
+
     /** Una matrícula aprobada completa, sin tocar la base de datos. */
     private function enrollment(string $arte): UserCourse
     {
