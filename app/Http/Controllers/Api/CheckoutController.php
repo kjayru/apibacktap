@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Exceptions\CartException;
 use App\Http\Controllers\Controller;
+use App\Models\Chapter;
 use App\Models\Course;
 use App\Models\CourseOrder;
 use App\Models\Event;
@@ -122,7 +123,9 @@ class CheckoutController extends Controller
                 ],
             ]],
             'success_url' => $frontendUrl . '/cart/success?session_id={CHECKOUT_SESSION_ID}',
-            'cancel_url' => $frontendUrl . '/cart/cancel',
+            // Un curso presencial se compra desde el calendario: al cancelar se vuelve
+            // allí, no al carrito (#1778).
+            'cancel_url' => $frontendUrl . '/cart/cancel?kind=event&event=' . $event->slug,
             'metadata' => [
                 'kind' => 'event',
                 'user_id' => (string) $user->id,
@@ -168,6 +171,7 @@ class CheckoutController extends Controller
         abort_if($order->user_id !== $request->user()->id, 403, 'You do not have access to this order.');
 
         $course = json_decode($order->course, true);
+        $record = isset($course['id']) ? Course::find($course['id']) : null;
 
         return response()->json(['success' => true, 'data' => [
             'id' => $order->id,
@@ -176,6 +180,19 @@ class CheckoutController extends Controller
             'amount' => $order->amount,
             'currency' => $order->currency,
             'payment_status' => $order->payment_status,
+            // La pantalla de compra correcta muestra la ficha del curso recién comprado
+            // (#1799): imagen, quién lo imparte y sus datos.
+            'course' => $record ? [
+                'title' => $record->titulo,
+                'slug' => $record->slug,
+                'banner_url' => $record->banner ? url('/storage/' . ltrim($record->banner, '/')) : null,
+                'instructor' => $record->responsable,
+                'available_from' => $record->disponible,
+                'chapters' => Chapter::where('course_id', $record->id)->count(),
+                'audio' => $record->audio,
+                'level' => $record->nivel,
+                'access_days' => $record->tiempovalido,
+            ] : null,
         ]]);
     }
 
