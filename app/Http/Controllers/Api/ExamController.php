@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CourseFailed;
+use App\Mail\CoursePassed;
 use App\Models\Chapter;
 use App\Models\Course;
 use App\Models\Exam;
@@ -16,6 +18,7 @@ use App\Services\CourseAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class ExamController extends Controller
 {
@@ -210,8 +213,15 @@ class ExamController extends Controller
 
         if ($passed) {
             $userCourse->update(['aprobado' => 1, 'finalizado' => 1]);
+            $this->sendMail($userCourse->user?->email, new CoursePassed($userCourse, $course));
         } else {
             $userCourse->update(['aprobado' => 0, 'intentos' => (int) $userCourse->intentos + 1]);
+
+            // Como en producción: el aviso de no aprobado sale al agotar los intentos,
+            // no en cada suspenso (#1831).
+            if ((int) $userCourse->refresh()->intentos >= CourseAccessService::MAX_EXAM_ATTEMPTS) {
+                $this->sendMail($userCourse->user?->email, new CourseFailed($userCourse, $course));
+            }
         }
 
         return $this->ok([
@@ -301,6 +311,20 @@ class ExamController extends Controller
     private function ok(mixed $data, int $status = 200): JsonResponse
     {
         return response()->json(['success' => true, 'data' => $data], $status);
+    }
+
+    /** Un fallo del correo no puede tumbar la entrega del examen: se registra y sigue. */
+    private function sendMail(?string $to, \Illuminate\Mail\Mailable $mailable): void
+    {
+        if (! filled($to)) {
+            return;
+        }
+
+        try {
+            Mail::to($to)->send($mailable);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 
     /** El intento abierto, si lo hay: entregado no cuenta. */

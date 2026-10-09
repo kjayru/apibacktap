@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\CartException;
+use App\Mail\EnrollmentSigned;
 use App\Http\Controllers\Controller;
 use App\Models\Chapter;
 use App\Models\Chaptercontent;
@@ -14,6 +15,7 @@ use App\Models\UserSign;
 use App\Services\CourseAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class LearnController extends Controller
@@ -211,6 +213,9 @@ class LearnController extends Controller
             'code' => (string) now()->timestamp,
         ]);
 
+        // Confirmación de la firma, como en producción (#1831).
+        $this->sendMail($request->user()->email, new EnrollmentSigned($sign));
+
         return $this->ok(['signed' => true, 'signed_at' => $sign->created_at?->toISOString()], 201);
     }
 
@@ -224,6 +229,20 @@ class LearnController extends Controller
         $this->access->assertChapterUnlocked($userCourse, $course, $chapter);
 
         return $userCourse;
+    }
+
+    /** Un fallo del correo no puede tumbar la acción del alumno: se registra y sigue. */
+    private function sendMail(?string $to, \Illuminate\Mail\Mailable $mailable): void
+    {
+        if (! filled($to)) {
+            return;
+        }
+
+        try {
+            Mail::to($to)->send($mailable);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 
     private function assetUrl(?string $path): ?string

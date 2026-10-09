@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WelcomeRegistered;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
@@ -35,6 +37,14 @@ class AuthController extends Controller
         // El panel lista a los alumnos por este rol, igual que el sitio anterior: sin él,
         // quien se registra desde el front no aparece nunca en "User who is taking" (#1825).
         $user->assignRole(self::STUDENT_ROLE);
+
+        // Bienvenida con los cursos más recientes (#1831). Un fallo del correo no debe
+        // impedir el alta.
+        try {
+            Mail::to($user->email)->send(new WelcomeRegistered($user));
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
 
         $token = $user->createToken('spa')->plainTextToken;
 

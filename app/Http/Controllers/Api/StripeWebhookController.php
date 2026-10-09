@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\CourseOrderPlaced;
+use App\Mail\CoursePurchased;
 use App\Models\Course;
 use App\Models\CourseOrder;
 use App\Models\Order;
@@ -87,6 +88,7 @@ class StripeWebhookController extends Controller
         ]);
 
         $this->notifyPurchase($order, $course);
+        $this->notifyStudent($order, $course);
     }
 
     /** Ficha #200: TAP recibe el aviso de la compra con los datos de la orden. */
@@ -102,6 +104,22 @@ class StripeWebhookController extends Controller
 
         try {
             Mail::to($to)->send(new CourseOrderPlaced($order, $course));
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+    }
+
+    /** Confirmación de compra para el alumno, con su curso (#1831). */
+    private function notifyStudent(CourseOrder $order, Course $course): void
+    {
+        $to = $order->email ?: $order->user?->email;
+
+        if (! filled($to)) {
+            return;
+        }
+
+        try {
+            Mail::to($to)->send(new CoursePurchased($order, $course));
         } catch (\Throwable $exception) {
             report($exception);
         }

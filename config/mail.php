@@ -49,6 +49,21 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        /*
+         * SendGrid por SMTP con la API key: el usuario es siempre "apikey" y la clave es
+         * la propia key. Así basta con poner MAIL_MAILER=sendgrid y SENDGRID_API_KEY.
+         */
+        'sendgrid' => [
+            'transport' => 'smtp',
+            'host' => env('SENDGRID_HOST', 'smtp.sendgrid.net'),
+            'port' => env('SENDGRID_PORT', 587),
+            'encryption' => 'tls',
+            'username' => 'apikey',
+            'password' => env('SENDGRID_API_KEY'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],

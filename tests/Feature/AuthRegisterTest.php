@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Mail\WelcomeRegistered;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -24,6 +26,8 @@ class AuthRegisterTest extends TestCase
 
     public function test_registering_from_the_front_gives_the_student_role(): void
     {
+        Mail::fake();
+
         $this->postJson('/api/v1/auth/register', [
             'name' => 'Tania',
             'lastname' => 'Martínez',
@@ -35,6 +39,9 @@ class AuthRegisterTest extends TestCase
         $user = User::where('email', 'alumna@example.com')->firstOrFail();
 
         $this->assertTrue($user->hasRole('usuario'));
+
+        // Y recibe la bienvenida (#1831).
+        Mail::assertSent(WelcomeRegistered::class, fn (WelcomeRegistered $mail): bool => $mail->hasTo('alumna@example.com'));
     }
 
     private function createTables(): void
@@ -45,6 +52,14 @@ class AuthRegisterTest extends TestCase
             $t->string('lastname')->nullable();
             $t->string('email');
             $t->string('password');
+            $t->timestamps();
+        });
+        Schema::create('courses', function (Blueprint $t): void {
+            $t->id();
+            $t->string('titulo');
+            $t->string('slug');
+            $t->string('banner')->nullable();
+            $t->text('resumen')->nullable();
             $t->timestamps();
         });
         Schema::create('profiles', function (Blueprint $t): void {

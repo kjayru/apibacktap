@@ -6,10 +6,14 @@ use App\Exceptions\CartException;
 use App\Models\Course;
 use App\Models\User;
 use App\Models\UserCourse;
+use App\Mail\CourseFailed;
+use App\Mail\EnrollmentSigned;
+use App\Mail\CoursePassed;
 use App\Services\CourseAccessService;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -224,6 +228,57 @@ class CourseRulesTest extends TestCase
 
         $this->assertSame(3, (int) $agotada->fresh()->intentos);
         $this->assertSame(0, (int) $nueva->fresh()->intentos);
+    }
+
+    public function test_passing_the_exam_emails_the_certificate_and_failing_three_times_emails_the_retake(): void
+    {
+        Mail::fake();
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+
+        // Dos suspensos: todavía no se avisa, como en producción.
+        for ($i = 1; $i <= 2; $i++) {
+            $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk();
+        }
+
+        Mail::assertNothingSent();
+
+        // Al tercero, el aviso de no aprobado con sus 15 días.
+        $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk();
+
+        Mail::assertSent(CourseFailed::class, fn (CourseFailed $mail): bool => $mail->hasTo('student@example.com'));
+
+        // Un curso aprobado avisa con el certificado.
+        Mail::fake();
+        $nueva = $this->enroll();
+        $this->completeCourseContents();
+        $correctas = DB::table('exam_question_options')->where('resultado', 1)->orderBy('id')->get();
+
+        $this->postJson('/api/v1/learn/courses/basic/exam', [
+            'answers' => $correctas->map(fn ($option): array => [
+                'exam_question_id' => $option->exam_question_id,
+                'exam_question_option_id' => $option->id,
+            ])->all(),
+        ])->assertOk()->assertJsonPath('data.passed', true);
+
+        Mail::assertSent(CoursePassed::class);
+        $this->assertSame(1, (int) $nueva->fresh()->aprobado);
+    }
+
+    public function test_signing_the_enrollment_emails_the_confirmation(): void
+    {
+        Mail::fake();
+        Sanctum::actingAs($this->user);
+
+        $this->postJson('/api/v1/learn/sign', [
+            'legalname' => 'Student Legal',
+            'fullname' => 'Student Full',
+            'initial' => 'SF',
+            'firma' => 'data:image/png;base64,iVBORw0KGgo=',
+        ])->assertCreated();
+
+        Mail::assertSent(EnrollmentSigned::class, fn (EnrollmentSigned $mail): bool => $mail->hasTo('student@example.com'));
     }
 
     public function test_expired_enrollment_blocks_access_and_allows_repurchase(): void
@@ -477,6 +532,17 @@ class CourseRulesTest extends TestCase
             $t->unsignedBigInteger('exam_question_id');
             $t->string('opcion');
             $t->integer('resultado')->default(0);
+            $t->timestamps();
+        });
+        Schema::create('user_signs', function (Blueprint $t): void {
+            $t->id();
+            $t->unsignedBigInteger('user_id');
+            $t->string('legalname')->nullable();
+            $t->string('email')->nullable();
+            $t->text('firma')->nullable();
+            $t->string('fullname')->nullable();
+            $t->string('initial')->nullable();
+            $t->string('code')->nullable();
             $t->timestamps();
         });
         Schema::create('user_course_exams', function (Blueprint $t): void {
