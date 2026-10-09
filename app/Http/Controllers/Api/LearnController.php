@@ -33,6 +33,11 @@ class LearnController extends Controller
         return $this->ok($userCourses->map(function (UserCourse $userCourse) use ($userId) {
             $course = $userCourse->course;
 
+            $chaptersTotal = Chapter::where('course_id', $course->id)->count();
+            $chaptersDone = UserCourseChapter::where('user_course_id', $userCourse->id)
+                ->where('quiz_result', 1)
+                ->count();
+
             return [
                 'user_course_id' => $userCourse->id,
                 'course' => [
@@ -41,7 +46,12 @@ class LearnController extends Controller
                     'slug' => $course->slug,
                     'banner_url' => $this->assetUrl($course->banner),
                     'level' => $course->nivel,
+                    // El listado de producción dice quién imparte el curso y cuántos
+                    // capítulos lleva hechos el alumno (#1800).
+                    'instructor' => $course->responsable,
                 ],
+                'chapters_total' => $chaptersTotal,
+                'chapters_completed' => min($chaptersDone, $chaptersTotal),
                 'progress_percent' => UserCourseChapter::completeChapter($userId, $course->id, $userCourse->id),
                 // Sólo la matrícula más reciente de cada curso es la que se puede cursar.
                 'is_current' => $userCourse->id === $this->access->latestEnrollment($userCourse->user, $course)?->id,
