@@ -344,6 +344,9 @@ class PublicSiteController extends Controller
                     // En el disco público, como los del sitio anterior: en el disco por
                     // defecto quedaban fuera de /storage y el admin no podía abrirlos.
                     $archivo->file = Storage::disk('public')->putFile('applied', $file);
+                    // El nombre con el que lo subió el aspirante, para que el panel
+                    // muestre y descargue el documento con su nombre (#1736).
+                    $archivo->original_name = $file->getClientOriginalName();
                     $archivo->disclaimer_id = $disclaimer->id;
                     $archivo->save();
                 }

@@ -13,6 +13,8 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Filament\Support\Facades\FilamentView;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -21,6 +23,21 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
+    public function boot(): void
+    {
+        // Un archivo subido se marca en verde, para que se vea de un vistazo que el vídeo
+        // terminó de subir: con el reproductor encima no se distinguía (#1694, #1703).
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            fn (): string => <<<'HTML'
+                <style>
+                    .filepond--item-panel { background-color: #16a34a !important; }
+                    .filepond--file-status { color: #ffffff; }
+                </style>
+                HTML,
+        );
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel

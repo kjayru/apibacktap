@@ -11,6 +11,7 @@ class Archivo extends Model
     /** Columnas de la tabla; sin esto Filament falla al crear o editar. */
     protected $fillable = [
         'file',
+        'original_name',
         'disclaimer_id',
     ];
 }

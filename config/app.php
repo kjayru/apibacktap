@@ -71,6 +71,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Zona horaria del panel
+    |--------------------------------------------------------------------------
+    |
+    | Los datos se guardan en UTC, como siempre, pero el panel los muestra en la
+    | hora de Texas, que es donde trabaja TAP (#1810).
+    |
+    */
+
+    'admin_timezone' => env('ADMIN_TIMEZONE', 'America/Chicago'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

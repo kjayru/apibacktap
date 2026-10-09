@@ -207,9 +207,12 @@ class InformationInfolist
 
         return $files
             ->map(fn ($archivo): string => sprintf(
-                '<a href="%s" target="_blank" rel="noopener" class="text-primary-600 underline">%s</a>',
+                '<a href="%s" target="_blank" rel="noopener" download="%s" class="text-primary-600 underline">%s</a>',
                 e(Storage::disk('public')->url($archivo->file)),
-                e(basename($archivo->file)),
+                e($archivo->original_name ?: basename($archivo->file)),
+                // Los adjuntos antiguos no guardaron el nombre original: se muestra el
+                // del archivo para no dejar el enlace sin texto (#1736).
+                e($archivo->original_name ?: basename($archivo->file)),
             ))
             ->implode('<br>');
     }

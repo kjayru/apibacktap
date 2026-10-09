@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Industries;
 use App\Filament\Resources\Industries\Pages\CreateIndustry;
 use App\Filament\Resources\Industries\Pages\EditIndustry;
 use App\Filament\Resources\Industries\Pages\ListIndustries;
-use App\Filament\Resources\Industries\Pages\ViewIndustry;
 use App\Filament\Resources\Industries\Schemas\IndustryForm;
 use App\Filament\Resources\Industries\Schemas\IndustryInfolist;
 use App\Filament\Resources\Industries\Tables\IndustriesTable;
@@ -60,7 +59,6 @@ class IndustryResource extends Resource
         return [
             'index' => ListIndustries::route('/'),
             'create' => CreateIndustry::route('/create'),
-            'view' => ViewIndustry::route('/{record}'),
             'edit' => EditIndustry::route('/{record}/edit'),
         ];
     }

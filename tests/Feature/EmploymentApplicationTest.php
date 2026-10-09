@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Archivo;
 use App\Models\Information;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -56,6 +59,27 @@ class EmploymentApplicationTest extends TestCase
         $this->assertSame('QA', $information->firstname);
     }
 
+    public function test_an_attachment_keeps_the_name_the_applicant_used(): void
+    {
+        Storage::fake('public');
+
+        $this->post('/api/v1/employment', [
+            'lastname' => 'Prueba',
+            'firstname' => 'QA',
+            'address' => '123 Test St',
+            'city' => 'San Antonio',
+            'state' => 'TX',
+            'zipcode' => '78216',
+            'phone' => '2103991116',
+            'email' => 'qa@example.com',
+            'fileid' => [UploadedFile::fake()->create('licencia de conducir.pdf', 10, 'application/pdf')],
+        ])->assertCreated();
+
+        $archivo = Archivo::firstOrFail();
+
+        $this->assertSame('licencia de conducir.pdf', $archivo->original_name);
+    }
+
     private function createLegacyTables(): void
     {
         Schema::create('informations', function (Blueprint $t): void {
@@ -81,7 +105,7 @@ class EmploymentApplicationTest extends TestCase
             'employments' => ['company', 'phoneemp', 'addressempl', 'supervisor', 'jobtitle', 'starting', 'ending', 'from', 'to', 'reason', 'references'],
             'militaries' => ['branch', 'from', 'to', 'rank', 'type', 'explain'],
             'disclaimers' => ['signature', 'fileid', 'datedisclamer'],
-            'archivos' => ['file', 'name'],
+            'archivos' => ['file', 'original_name', 'name'],
         ];
 
         foreach ($extras as $table => $columns) {
