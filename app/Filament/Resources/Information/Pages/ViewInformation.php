@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\Information\Pages;
 
 use App\Filament\Resources\Information\InformationResource;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Support\Icons\Heroicon;
 
 class ViewInformation extends ViewRecord
 {
@@ -12,6 +14,12 @@ class ViewInformation extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            // Versión para imprimir, en una pestaña aparte (#1737).
+            Action::make('print')
+                ->label('Print')
+                ->icon(Heroicon::OutlinedPrinter)
+                ->url(fn (): string => route('admin.print.applicant', ['information' => $this->getRecord()]))
+                ->openUrlInNewTab(),
         ];
     }
 

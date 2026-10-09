@@ -11,6 +11,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -105,6 +106,14 @@ class UsersTakingTable
             ->modalWidth(Width::FourExtraLarge)
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close')
+            // Versión para imprimir del documento firmado (#1740).
+            ->extraModalFooterActions([
+                Action::make('printEnrollment')
+                    ->label('Print')
+                    ->icon(Heroicon::OutlinedPrinter)
+                    ->url(fn (User $record): string => route('admin.print.enrollment', ['user' => $record]))
+                    ->openUrlInNewTab(),
+            ])
             // El documento es largo: con el foco en "Close" se abría por el final.
             ->modalAutofocus(false)
             ->modalContent(fn (User $record) => view('filament.user-courses.enrollment', [
