@@ -24,7 +24,9 @@ class EnrollmentSigned extends Mailable
         return new Content(view: 'emails.enrollment-signed', with: [
             'name' => $this->sign->fullname ?: $this->sign->legalname,
             'legalName' => $this->sign->legalname,
-            'documentId' => $this->sign->code,
+            // Las firmas del sitio anterior no siempre guardaron el código: se usa su
+            // identificador para no dejar el dato vacío.
+            'documentId' => $this->sign->code ?: $this->sign->getKey(),
             'url' => rtrim((string) config('app.frontend_url'), '/') . '/profile',
         ]);
     }
