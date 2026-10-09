@@ -130,7 +130,36 @@ class QuizController extends Controller
             'pass_threshold' => CourseAccessService::PASS_THRESHOLD,
             'is_complete' => $isComplete,
             'passed' => (int) $userCourseChapter->refresh()->quiz_result === 1,
+            'review' => $this->review($chapter, $userCourseChapter),
         ];
+    }
+
+    /** Lo que hace falta para el botón "View questions" del resultado (#1804). */
+    private function review(Chapter $chapter, UserCourseChapter $userCourseChapter): array
+    {
+        $answers = UserCourseChapterQuiz::where('user_course_chapter_id', $userCourseChapter->id)
+            ->get()
+            ->keyBy('chapter_quiz_id');
+
+        return ChapterQuiz::where('chapter_id', $chapter->id)
+            ->with('chapterquizoptions')
+            ->orderBy('id')
+            ->get()
+            ->map(function (ChapterQuiz $question) use ($answers): array {
+                $answer = $answers->get($question->id);
+                $chosen = $answer
+                    ? $question->chapterquizoptions->firstWhere('id', $answer->quiz_question_option_id)
+                    : null;
+
+                return [
+                    'question' => $question->question,
+                    'your_answer' => $chosen?->option,
+                    'correct_answer' => $question->chapterquizoptions->firstWhere('estado', 1)?->option,
+                    'correct' => $answer ? (int) $answer->result === 1 : false,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function findUserCourse(Request $request, Course $course, Chapter $chapter): UserCourse
