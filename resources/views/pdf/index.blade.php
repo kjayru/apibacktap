@@ -17,7 +17,7 @@ use Carbon\Carbon;
 
     width:100%;
     height:1000px;
-    background:url('{{env('APP_URL')}}/images/Certificado-generico-02.png') no-repeat center center;
+    background:url('{{ \App\Support\CertificateTemplate::artworkPath('images/Certificado-generico-02.png') }}') no-repeat center center;
     background-size: contain;
 }
 

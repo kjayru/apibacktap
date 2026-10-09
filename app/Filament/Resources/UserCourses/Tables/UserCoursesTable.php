@@ -70,7 +70,13 @@ class UserCoursesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                // Para poder repasar de un vistazo todos los certificados emitidos: el
+                // botón "Certificate" sólo aparece en las matrículas aprobadas (#1832).
+                \Filament\Tables\Filters\TernaryFilter::make('aprobado')
+                    ->label('Approved')
+                    ->placeholder('All enrollments')
+                    ->trueLabel('With certificate')
+                    ->falseLabel('Without certificate'),
             ])
             ->recordActions([
                 Action::make('certificate')

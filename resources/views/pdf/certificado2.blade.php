@@ -200,10 +200,10 @@ use Illuminate\Support\Str;
             X
         </div>
         <div class="bussines_signature">
-            <img src="{{env('APP_URL')}}/images/firma2.png" style="width:100%">
+            <img src="{{ \App\Support\CertificateTemplate::artworkPath('images/firma2.png') }}" style="width:100%">
         </div>
         <div class="bussines_signature2">
-            <img src="{{env('APP_URL')}}/images/firma2.png" style="width:100%">
+            <img src="{{ \App\Support\CertificateTemplate::artworkPath('images/firma2.png') }}" style="width:100%">
         </div>
     </div>
 
