@@ -204,6 +204,28 @@ class CourseRulesTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_buying_the_course_again_starts_the_exam_attempts_from_zero(): void
+    {
+        $agotada = $this->enroll(['intentos' => 3, 'finalizado' => 1]);
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+
+        // Con los intentos agotados el examen está cerrado.
+        $this->getJson('/api/v1/learn/courses/basic/exam')->assertStatus(403);
+
+        // La compra abre una matrícula nueva, como hace el webhook de Stripe: el curso
+        // se vuelve a cursar desde el principio y el examen arranca con sus 3 intentos.
+        $nueva = $this->enroll();
+        $this->completeCourseContents();
+
+        $this->getJson('/api/v1/learn/courses/basic/exam')->assertOk()
+            ->assertJsonPath('data.attempts_used', 0)
+            ->assertJsonPath('data.attempts_left', 3);
+
+        $this->assertSame(3, (int) $agotada->fresh()->intentos);
+        $this->assertSame(0, (int) $nueva->fresh()->intentos);
+    }
+
     public function test_expired_enrollment_blocks_access_and_allows_repurchase(): void
     {
         $this->enroll(['fecha_inicio' => Carbon::now()->subDays(31)->toDateString(), 'dias_activo' => 30]);
