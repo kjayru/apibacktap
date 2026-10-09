@@ -164,8 +164,10 @@ class ExamController extends Controller
         $answers = collect($validated['answers'])->keyBy('exam_question_id');
 
         $totalCorrect = 0;
+        $review = [];
+        $timeSpent = $this->timeSpent($attempt, $exam);
 
-        DB::transaction(function () use ($questions, $answers, $attempt, $attemptNumber, &$totalCorrect): void {
+        DB::transaction(function () use ($questions, $answers, $attempt, $attemptNumber, &$totalCorrect, &$review): void {
             foreach ($questions as $questionId) {
                 $answer = $answers->get($questionId);
                 $option = $answer
@@ -176,6 +178,16 @@ class ExamController extends Controller
 
                 // Sin opción válida no hay fila (la columna no admite nulos): la pregunta
                 // cuenta como fallada en la nota, que se calcula sobre el total del examen.
+                $question = ExamQuestion::with('examquestionoptions')->find($questionId);
+
+                // Para la pantalla "View questions": qué contestó y cuál era la correcta.
+                $review[] = [
+                    'question' => $question?->question,
+                    'your_answer' => $option?->opcion,
+                    'correct_answer' => $question?->examquestionoptions->firstWhere('resultado', 1)?->opcion,
+                    'correct' => (bool) $result,
+                ];
+
                 if ($option) {
                     UserCourseExamResult::create([
                         'user_course_exam_id' => $attempt->id,
@@ -209,6 +221,8 @@ class ExamController extends Controller
             'pass_threshold' => CourseAccessService::PASS_THRESHOLD,
             'total_correct' => $totalCorrect,
             'total_questions' => $totalQuestions,
+            'time_spent' => $timeSpent,
+            'review' => $review,
         ] + $this->attemptsPayload($userCourse->refresh()));
     }
 
@@ -338,6 +352,18 @@ class ExamController extends Controller
     private function durationLabel(Exam $exam): string
     {
         return gmdate('H:i:s', $this->durationSeconds($exam));
+    }
+
+    /** Lo que tardó el alumno en el intento, en HH:MM:SS, como el "Your time" de producción. */
+    private function timeSpent(UserCourseExam $attempt, Exam $exam): string
+    {
+        if (! $attempt->started_at) {
+            return '00:00:00';
+        }
+
+        $spent = (int) $attempt->started_at->diffInSeconds(now());
+
+        return gmdate('H:i:s', min(max(0, $spent), $this->durationSeconds($exam)));
     }
 
     /** Lo que queda de examen según el reloj del servidor, en HH:MM:SS. */
