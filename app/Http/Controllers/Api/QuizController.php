@@ -156,6 +156,14 @@ class QuizController extends Controller
                     'your_answer' => $chosen?->option,
                     'correct_answer' => $question->chapterquizoptions->firstWhere('estado', 1)?->option,
                     'correct' => $answer ? (int) $answer->result === 1 : false,
+                    // Todas las opciones, para poder pintar el repaso como la versión de
+                    // celular que pidió el cliente: la elegida y la correcta se marcan
+                    // cada una con su color (#1862).
+                    'options' => $question->chapterquizoptions->map(fn ($option): array => [
+                        'option' => $option->option,
+                        'chosen' => $chosen !== null && $option->id === $chosen->id,
+                        'is_correct' => (int) $option->estado === 1,
+                    ])->values()->all(),
                 ];
             })
             ->values()
