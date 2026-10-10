@@ -189,6 +189,13 @@ class ExamController extends Controller
                     'your_answer' => $option?->opcion,
                     'correct_answer' => $question?->examquestionoptions->firstWhere('resultado', 1)?->opcion,
                     'correct' => (bool) $result,
+                    // Todas las opciones, para marcar en el repaso la elegida y la
+                    // correcta, como en la versión de celular (#1862, #1864).
+                    'options' => $question?->examquestionoptions->map(fn ($item): array => [
+                        'option' => $item->opcion,
+                        'chosen' => $option !== null && $item->id === $option->id,
+                        'is_correct' => (int) $item->resultado === 1,
+                    ])->values()->all() ?? [],
                 ];
 
                 if ($option) {
