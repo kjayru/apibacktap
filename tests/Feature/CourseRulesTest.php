@@ -453,6 +453,53 @@ class CourseRulesTest extends TestCase
         $this->assertSame($old->id, $courses[1]['user_course_id']);
     }
 
+    /**
+     * Pero la matrícula vieja se puede repasar. Al recomprar un curso, el alumno perdía
+     * de vista el resultado y el certificado del que ya había aprobado, porque todas las
+     * pantallas abrían la última compra (#1876).
+     */
+    public function test_an_older_enrollment_can_still_be_reviewed(): void
+    {
+        $old = $this->enroll(['aprobado' => 1, 'finalizado' => 1]);
+        $new = $this->enroll();
+        Sanctum::actingAs($this->user);
+
+        $this->getJson('/api/v1/learn/courses/basic?enrollment=' . $old->id)->assertOk()
+            ->assertJsonPath('data.user_course_id', $old->id)
+            ->assertJsonPath('data.approved', true)
+            ->assertJsonPath('data.is_current', false);
+
+        // Y la actual sigue siendo la que se cursa.
+        $this->getJson('/api/v1/learn/courses/basic')->assertOk()
+            ->assertJsonPath('data.user_course_id', $new->id)
+            ->assertJsonPath('data.is_current', true);
+
+        $this->getJson('/api/v1/learn/courses/basic/verify-access?enrollment=' . $old->id)->assertOk()
+            ->assertJsonPath('data.has_access', true);
+    }
+
+    /** Una matrícula de otro alumno no se abre ni se confirma que exista. */
+    public function test_a_student_cannot_review_someone_elses_enrollment(): void
+    {
+        $ajena = UserCourse::create([
+            'user_id' => User::create(['name' => 'Otra', 'email' => 'otra@tap.test', 'password' => bcrypt('x')])->id,
+            'course_id' => $this->course->id,
+            'fecha_inicio' => Carbon::now()->toDateString(),
+            'dias_activo' => 30,
+            'aprobado' => 1,
+            'intentos' => 0,
+            'caducado' => 0,
+            'finalizado' => 1,
+        ]);
+
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+
+        $this->getJson('/api/v1/learn/courses/basic?enrollment=' . $ajena->id)->assertStatus(404);
+        $this->getJson('/api/v1/learn/courses/basic/verify-access?enrollment=' . $ajena->id)->assertStatus(404);
+        $this->getJson('/api/v1/learn/courses/basic/certificate?enrollment=' . $ajena->id)->assertStatus(404);
+    }
+
     // ---------------------------------------------------------------- helpers
 
     private function enroll(array $overrides = []): UserCourse

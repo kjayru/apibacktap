@@ -14,14 +14,24 @@ class CertificateController extends Controller
     public function show(Request $request, Course $course): Response
     {
         // El certificado es de la matrícula aprobada, aunque después el alumno haya vuelto
-        // a comprar el curso y su última matrícula esté en curso o caducada.
-        $userCourse = UserCourse::where('user_id', $request->user()->id)
-            ->where('course_id', $course->id)
-            ->where('aprobado', 1)
-            ->latest('id')
-            ->first();
+        // a comprar el curso y su última matrícula esté en curso o caducada. Con
+        // `?enrollment=` se pide el de una matrícula concreta, que es como lo enlaza la
+        // lista de cursos cuando hay varias compras del mismo curso (#1876).
+        $validated = $request->validate(['enrollment' => ['nullable', 'integer']]);
 
-        abort_if(! $userCourse, 422, 'You must pass the final exam before downloading the certificate.');
+        $userCourse = isset($validated['enrollment'])
+            ? UserCourse::where('id', (int) $validated['enrollment'])
+                ->where('user_id', $request->user()->id)
+                ->where('course_id', $course->id)
+                ->first()
+            : UserCourse::where('user_id', $request->user()->id)
+                ->where('course_id', $course->id)
+                ->where('aprobado', 1)
+                ->latest('id')
+                ->first();
+
+        abort_if(! $userCourse, 404, 'Enrollment not found.');
+        abort_if((int) $userCourse->aprobado !== 1, 422, 'You must pass the final exam before downloading the certificate.');
 
         // El alumno se descarga el certificado oficial de TAP, el mismo que sirve el
         // panel: hasta ahora recibía una plantilla genérica y sin el arte, porque la

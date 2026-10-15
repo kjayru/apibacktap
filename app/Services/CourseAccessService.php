@@ -65,6 +65,56 @@ class CourseAccessService
         return $userCourse;
     }
 
+    /**
+     * Matrícula que se quiere **repasar**, no cursar. Quien recompra un curso acumula
+     * varias matrículas del mismo curso, y hasta ahora todas las pantallas abrían la
+     * última: el alumno ya no podía ver el resultado ni el certificado del curso que
+     * había aprobado (#1876).
+     *
+     * Con `$enrollmentId` abre esa matrícula en concreto, siempre que sea suya y de este
+     * curso; sin él, la aprobada, y si no hay, la última. No mira la caducidad, porque
+     * es una pantalla de sólo lectura.
+     *
+     * Ninguna ruta que escriba (capítulos, quiz, examen, reinicio) debe usar este método:
+     * ésas entran por `resolve()`, y así no se puede tocar una matrícula ya cerrada.
+     */
+    public function resolveForReview(User $user, Course $course, ?int $enrollmentId = null): UserCourse
+    {
+        if ($enrollmentId !== null) {
+            $userCourse = UserCourse::where('id', $enrollmentId)
+                ->where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->first();
+
+            // 404 y no 403: si no es suya, ni siquiera se confirma que exista.
+            if (! $userCourse) {
+                throw new HttpException(404, 'Enrollment not found.');
+            }
+
+            return $this->expireIfDue($userCourse);
+        }
+
+        $approved = UserCourse::where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->where('aprobado', 1)
+            ->latest('id')
+            ->first();
+
+        if ($approved) {
+            return $this->expireIfDue($approved);
+        }
+
+        return $this->resolve($user, $course);
+    }
+
+    /** Si esta matrícula es con la que el alumno sigue cursando hoy. */
+    public function isCurrent(UserCourse $userCourse): bool
+    {
+        return (int) $userCourse->id === (int) UserCourse::where('user_id', $userCourse->user_id)
+            ->where('course_id', $userCourse->course_id)
+            ->max('id');
+    }
+
     /** Días que quedan, contados desde la fecha de inicio guardada (no desde created_at). */
     public function daysLeft(UserCourse $userCourse): ?int
     {

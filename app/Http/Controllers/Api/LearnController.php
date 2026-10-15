@@ -63,7 +63,9 @@ class LearnController extends Controller
 
     public function courseDetail(Request $request, Course $course): JsonResponse
     {
-        $userCourse = $this->access->resolve($request->user(), $course);
+        // Con `?enrollment=` se abre una matrícula concreta para repasarla; sin él, el
+        // comportamiento es el de siempre, la matrícula con la que se está cursando (#1876).
+        $userCourse = $this->reviewedEnrollment($request, $course);
 
         $chapters = Chapter::where('course_id', $course->id)->orderBy('order')->get();
         $completedChapterIds = UserCourseChapter::where('user_course_id', $userCourse->id)
@@ -114,6 +116,8 @@ class LearnController extends Controller
             ],
             'progress_percent' => UserCourseChapter::completeChapter($request->user()->id, $course->id, $userCourse->id),
             'chapters' => $chapterPayload,
+            // Para que la pantalla de repaso no ofrezca reiniciar una matrícula cerrada.
+            'is_current' => $this->access->isCurrent($userCourse),
         ] + $this->access->state($userCourse));
     }
 
@@ -171,6 +175,14 @@ class LearnController extends Controller
 
     public function verifyAccess(Request $request, Course $course): JsonResponse
     {
+        // Repasando una matrícula concreta basta con que sea suya: una caducada se puede
+        // consultar, aunque ya no se pueda cursar (#1876).
+        if ($enrollmentId = $this->requestedEnrollmentId($request)) {
+            $userCourse = $this->access->resolveForReview($request->user(), $course, $enrollmentId);
+
+            return $this->ok(['has_access' => true, 'reason' => null] + $this->access->state($userCourse));
+        }
+
         $userCourse = $this->access->latestEnrollment($request->user(), $course);
 
         return $this->ok([
@@ -181,6 +193,23 @@ class LearnController extends Controller
                 default => null,
             },
         ] + ($userCourse ? $this->access->state($userCourse) : []));
+    }
+
+    /** La matrícula que pide la URL, ya validada, o null si no se pide ninguna. */
+    private function requestedEnrollmentId(Request $request): ?int
+    {
+        $validated = $request->validate(['enrollment' => ['nullable', 'integer']]);
+
+        return isset($validated['enrollment']) ? (int) $validated['enrollment'] : null;
+    }
+
+    private function reviewedEnrollment(Request $request, Course $course): UserCourse
+    {
+        $enrollmentId = $this->requestedEnrollmentId($request);
+
+        return $enrollmentId === null
+            ? $this->access->resolve($request->user(), $course)
+            : $this->access->resolveForReview($request->user(), $course, $enrollmentId);
     }
 
     public function signStatus(Request $request): JsonResponse
