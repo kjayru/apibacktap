@@ -40,6 +40,7 @@ class CourseRulesTest extends TestCase
     {
         $this->enroll();
         Sanctum::actingAs($this->user);
+        $this->completeChapterOne();
 
         // 4 preguntas, 3 correctas = 75.00 %
         $answers = DB::table('chapter_quiz_options')->where('estado', 1)->orderBy('id')->limit(3)->get();
@@ -121,6 +122,122 @@ class CourseRulesTest extends TestCase
         $new->update(['intentos' => 3]);
         $this->postJson('/api/v1/learn/courses/basic/restart')->assertStatus(422);
         $this->assertTrue($this->getJson('/api/v1/learn/courses/basic')->json('data.can_repurchase'));
+    }
+
+    /**
+     * "Restart Exam" limpia el intento a medias y devuelve al alumno a las instrucciones.
+     * Reventaba con un 500 porque escribía null en `tiempo`, que en la base heredada es
+     * NOT NULL (#1878).
+     */
+    public function test_restarting_the_exam_clears_the_attempt_without_consuming_it(): void
+    {
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+
+        $this->postJson('/api/v1/learn/courses/basic/exam/start')->assertOk();
+
+        $this->postJson('/api/v1/learn/courses/basic/exam/reset')
+            ->assertOk()
+            ->assertJsonPath('data.attempts_used', 0);
+
+        $attempt = DB::table('user_course_exams')->latest('id')->first();
+        $this->assertNotNull($attempt->tiempo, 'El reinicio dejó `tiempo` vacío y la base no lo admite.');
+        $this->assertNull($attempt->started_at, 'El reloj viejo sobrevivió al reinicio y le quemaría un intento.');
+    }
+
+    /** Un examen ya entregado no se reabre al reiniciar: para eso está "Start". */
+    public function test_restarting_a_submitted_exam_does_not_reopen_it(): void
+    {
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+        $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk();
+
+        $this->postJson('/api/v1/learn/courses/basic/exam/reset')->assertOk();
+
+        $attempt = DB::table('user_course_exams')->latest('id')->first();
+        $this->assertSame(1, (int) $attempt->complete, 'Un intento ya entregado volvió a abrirse.');
+        $this->assertSame(1, (int) UserCourse::latest('id')->first()->intentos, 'El reinicio alteró los intentos contados.');
+    }
+
+    /**
+     * El alumno abandona el examen y el navegador avisa después de que venció el plazo.
+     * Es un solo abandono y debe contar un solo intento: al cerrarlo por tiempo se sumaba
+     * uno, y el aviso tardío del navegador sumaba otro (#1824, #1870).
+     */
+    public function test_an_abandoned_exam_counts_once_even_if_the_browser_reports_it_later(): void
+    {
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+        $this->postJson('/api/v1/learn/courses/basic/exam/start')->assertOk();
+
+        Carbon::setTestNow(Carbon::now()->addHours(3));
+
+        // El servidor cierra el intento por su cuenta al leer el examen.
+        $this->getJson('/api/v1/learn/courses/basic/exam')->assertOk()
+            ->assertJsonPath('data.attempts_used', 1);
+
+        // Y acto seguido llega el aviso del navegador por el mismo abandono.
+        $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => [], 'expired' => true])
+            ->assertOk()
+            ->assertJsonPath('data.attempts_used', 1);
+
+        $this->assertSame(1, (int) UserCourse::latest('id')->first()->intentos);
+        Carbon::setTestNow();
+    }
+
+    /**
+     * El alumno ve sus intentos en el sitio y el administrador en el panel, y cada uno
+     * leía un contador distinto: al aprobar sólo subía el del examen (#1870).
+     */
+    public function test_both_attempt_counters_stay_in_sync(): void
+    {
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+
+        $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk();
+        $this->assertCountersMatch('tras suspender');
+
+        // Y ahora aprueba: el intento bueno también cuenta como rendido.
+        $this->postJson('/api/v1/learn/courses/basic/exam', [
+            'answers' => [['exam_question_id' => 1, 'exam_question_option_id' => 1]],
+        ])->assertOk();
+        $this->assertCountersMatch('tras aprobar');
+    }
+
+    private function assertCountersMatch(string $cuando): void
+    {
+        $userCourse = UserCourse::latest('id')->first();
+        $attempt = DB::table('user_course_exams')->where('user_course_id', $userCourse->id)->latest('id')->first();
+
+        $this->assertSame(
+            (int) $userCourse->intentos,
+            (int) $attempt->intentos,
+            "Los dos contadores de intentos no coinciden {$cuando}: el alumno y el panel verían números distintos.",
+        );
+    }
+
+    /**
+     * El menú lateral lleva directo al quiz del capítulo, así que un alumno que retomaba
+     * el curso podía aprobarlo sin haber visto todos sus contenidos. El capítulo no se
+     * daba entonces por terminado y el curso se quedaba sin avanzar (#1877). En QA había
+     * ocho capítulos en ese estado, a todos les faltaba justo un contenido.
+     */
+    public function test_the_chapter_quiz_requires_its_own_contents_to_be_read_first(): void
+    {
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+
+        $this->getJson('/api/v1/learn/courses/basic/chapters/chapter-1/quiz')
+            ->assertStatus(403)
+            ->assertJsonPath('message', fn (?string $m): bool => str_contains((string) $m, 'chapter'));
+
+        $this->completeChapterOne();
+
+        $this->getJson('/api/v1/learn/courses/basic/chapters/chapter-1/quiz')->assertOk();
     }
 
     public function test_a_chapter_is_read_from_its_own_course_even_if_another_course_repeats_the_name(): void
@@ -549,7 +666,9 @@ class CourseRulesTest extends TestCase
             $t->id();
             $t->unsignedBigInteger('user_course_id');
             $t->unsignedBigInteger('exam_id');
-            $t->string('tiempo')->nullable();
+            // En la base heredada `tiempo` es varchar(100) NOT NULL. Declararlo nullable
+            // aquí dejó pasar un `update(['tiempo' => null])` que en MySQL es un 500 (#1878).
+            $t->string('tiempo', 100);
             $t->timestamp('started_at')->nullable();
             $t->integer('intentos')->nullable();
             $t->integer('resultado')->nullable()->default(0);

@@ -231,6 +231,34 @@ class CourseAccessService
         }
     }
 
+    /**
+     * El quiz cierra el capítulo, así que antes hay que haber visto todo su contenido.
+     * Sin esta comprobación, quien entraba al quiz por el menú lateral podía aprobarlo
+     * dejándose un apartado; el capítulo no se daba por terminado y el curso se quedaba
+     * sin avanzar (#1877).
+     */
+    public function assertChapterContentsRead(UserCourse $userCourse, Chapter $chapter): void
+    {
+        $total = $chapter->chaptercontents()->count();
+
+        if ($total === 0) {
+            return;
+        }
+
+        $userChapter = UserCourseChapter::where('user_course_id', $userCourse->id)
+            ->where('chapter_id', $chapter->id)
+            ->orderBy('id')
+            ->first();
+
+        $read = $userChapter
+            ? UserCourseChapterContent::where('user_course_chapter_id', $userChapter->id)->count()
+            : 0;
+
+        if ($read < $total) {
+            throw new HttpException(403, 'You need to read every section of this chapter before taking its quiz.');
+        }
+    }
+
     private function startDate(UserCourse $userCourse): Carbon
     {
         if (filled($userCourse->fecha_inicio)) {

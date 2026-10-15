@@ -141,16 +141,22 @@ class ExamController extends Controller
 
         $this->ensureAttemptsLeft($userCourse);
 
-        $attempt = $this->attemptInProgress($userCourse, $exam) ?: UserCourseExam::firstOrCreate(
-            ['user_course_id' => $userCourse->id, 'exam_id' => $exam->id],
-            ['intentos' => 0, 'complete' => 0, 'resultado' => 0, 'tiempo' => '00:00:00', 'started_at' => now()],
-        );
-
-        $attemptNumber = (int) $attempt->intentos + 1;
+        $inProgress = $this->attemptInProgress($userCourse, $exam);
 
         // Se acabó el tiempo: cuenta como intento fallido, igual que entregar en blanco.
+        // Sólo si el intento sigue abierto: cuando el plazo vence, el servidor ya lo cierra
+        // y lo cuenta al leer el examen, y el aviso que manda después el navegador se
+        // refiere a ese mismo abandono. Contando los dos, uno valía por dos (#1824, #1870).
         if ($validated['expired'] ?? false) {
-            $attempt->update(['intentos' => $attemptNumber, 'tiempo' => $validated['remaining_time'] ?? '00:00:00', 'resultado' => 0, 'complete' => 1, 'evento' => 'excedio', 'started_at' => null]);
+            if (! $inProgress) {
+                return $this->ok([
+                    'completed' => false,
+                    'expired' => true,
+                    'message' => 'Time is up.',
+                ] + $this->attemptsPayload($userCourse->refresh()));
+            }
+
+            $inProgress->update(['intentos' => (int) $inProgress->intentos + 1, 'tiempo' => $validated['remaining_time'] ?? '00:00:00', 'resultado' => 0, 'complete' => 1, 'evento' => 'excedio', 'started_at' => null]);
             $userCourse->update(['aprobado' => 0, 'intentos' => (int) $userCourse->intentos + 1]);
 
             return $this->ok([
@@ -159,6 +165,13 @@ class ExamController extends Controller
                 'message' => 'Time is up.',
             ] + $this->attemptsPayload($userCourse->refresh()));
         }
+
+        $attempt = $inProgress ?: UserCourseExam::firstOrCreate(
+            ['user_course_id' => $userCourse->id, 'exam_id' => $exam->id],
+            ['intentos' => 0, 'complete' => 0, 'resultado' => 0, 'tiempo' => '00:00:00', 'started_at' => now()],
+        );
+
+        $attemptNumber = (int) $attempt->intentos + 1;
 
         // La nota se calcula sobre TODAS las preguntas del examen, no sobre las respuestas
         // enviadas: una pregunta sin responder cuenta como fallada. Si no, bastaba con
@@ -219,7 +232,10 @@ class ExamController extends Controller
         $attempt->update(['resultado' => $percentage]);
 
         if ($passed) {
-            $userCourse->update(['aprobado' => 1, 'finalizado' => 1]);
+            // El intento bueno también se cuenta como rendido. Antes sólo subía el contador
+            // del examen y no el de la matrícula, así que el alumno y el panel mostraban
+            // números distintos para el mismo curso (#1870).
+            $userCourse->update(['aprobado' => 1, 'finalizado' => 1, 'intentos' => (int) $userCourse->intentos + 1]);
             $this->sendMail($userCourse->user?->email, new CoursePassed($userCourse, $course));
         } else {
             $userCourse->update(['aprobado' => 0, 'intentos' => (int) $userCourse->intentos + 1]);
@@ -256,12 +272,18 @@ class ExamController extends Controller
 
         $attempt = UserCourseExam::where('user_course_id', $userCourse->id)->where('exam_id', $exam->id)->first();
 
-        // Sólo se limpia un intento a medias (no entregado); los entregados ya cuentan.
+        // Sólo se limpia un intento a medias; uno ya entregado se queda como está, porque
+        // "Start" ya lo reabre con el reloj nuevo. `tiempo` guarda la duración del examen
+        // y en la base heredada no admite nulos: ponerlo a null devolvía un 500 (#1878).
+        // Y hay que soltar `started_at`, o la siguiente lectura daría el plazo por vencido
+        // y le gastaría un intento al alumno por haber pulsado "Restart".
         if ($attempt && (int) $attempt->complete !== 1) {
             UserCourseExamResult::where('user_course_exam_id', $attempt->id)->where('attempt_number', (int) $attempt->intentos + 1)->delete();
-            $attempt->update(['tiempo' => null, 'evento' => null]);
-        } elseif ($attempt) {
-            $attempt->update(['complete' => 0, 'tiempo' => null, 'evento' => null]);
+            $attempt->update([
+                'tiempo' => $this->durationLabel($exam),
+                'started_at' => null,
+                'evento' => null,
+            ]);
         }
 
         return $this->ok(['message' => 'Exam attempt has been reset.'] + $this->attemptsPayload($userCourse));

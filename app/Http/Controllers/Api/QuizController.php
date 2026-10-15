@@ -176,6 +176,7 @@ class QuizController extends Controller
 
         $userCourse = $this->access->resolve($request->user(), $course);
         $this->access->assertChapterUnlocked($userCourse, $course, $chapter);
+        $this->access->assertChapterContentsRead($userCourse, $chapter);
 
         return $userCourse;
     }

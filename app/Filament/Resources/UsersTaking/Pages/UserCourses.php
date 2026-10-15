@@ -214,8 +214,20 @@ class UserCourses extends Page implements HasTable
             ->first();
     }
 
+    /**
+     * El número de intento sale de la matrícula, que es el contador que también ve el
+     * alumno; antes se leía el del examen y los dos podían discrepar (#1870). Para las
+     * filas antiguas que quedaron en cero se cae al del examen y, en último término, al
+     * mayor número de intento registrado en sus respuestas.
+     */
     private function getAttemptNumber(UserCourseExam $userCourseExam): int
     {
+        $enrollmentAttempts = (int) ($userCourseExam->userCourse?->intentos ?? 0);
+
+        if ($enrollmentAttempts > 0) {
+            return $enrollmentAttempts;
+        }
+
         if ((int) $userCourseExam->intentos > 0) {
             return (int) $userCourseExam->intentos;
         }
