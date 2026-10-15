@@ -21,7 +21,7 @@
 <div style="{{ $card }}">
     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;padding-bottom:16px;border-bottom:1px solid #e5e7eb;">
         <h2 style="margin:0;font-size:20px;font-weight:700;">Tap Security</h2>
-        <span style="{{ $muted }}">Date: {{ $order->created_at?->format('M d, Y H:i:s') }}</span>
+        <span style="{{ $muted }}">Date: {{ \App\Support\AdminTime::format($order->created_at, 'M d, Y H:i:s') }}</span>
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:24px;padding:20px 0;">

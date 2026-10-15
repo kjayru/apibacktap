@@ -26,13 +26,15 @@ class AdminPanelProvider extends PanelProvider
     public function boot(): void
     {
         // Un archivo subido se marca en verde, para que se vea de un vistazo que el vídeo
-        // terminó de subir: con el reproductor encima no se distinguía (#1694, #1703).
+        // terminó de subir (#1694, #1703). Sólo el estado "terminado": antes se pintaba
+        // verde con !important cualquier estado, también el de error, así que una subida
+        // fallida se veía igual que una correcta.
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
             fn (): string => <<<'HTML'
                 <style>
-                    .filepond--item-panel { background-color: #16a34a !important; }
-                    .filepond--file-status { color: #ffffff; }
+                    [data-filepond-item-state='processing-complete'] .filepond--item-panel { background-color: #16a34a; }
+                    [data-filepond-item-state='processing-complete'] .filepond--file-status { color: #ffffff; }
                 </style>
                 HTML,
         );
@@ -49,6 +51,9 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->brandName('TAP')
+            // El panel no declaraba icono y el favicon.ico del proyecto estaba vacío, así
+            // que la pestaña salía sin marca (#1879).
+            ->favicon(asset('images/favicon-tap.png'))
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

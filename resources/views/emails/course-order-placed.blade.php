@@ -19,7 +19,7 @@
         <tr><td style="border: 1px solid #e5e7eb; font-weight: bold;">Amount paid</td><td style="border: 1px solid #e5e7eb;"><strong>${{ number_format((float) $order->amount, 2) }} {{ strtoupper($order->currency ?? 'usd') }}</strong></td></tr>
         <tr><td style="border: 1px solid #e5e7eb; font-weight: bold;">Order ID</td><td style="border: 1px solid #e5e7eb;">{{ $order->order_id }}</td></tr>
         <tr><td style="border: 1px solid #e5e7eb; font-weight: bold;">Stripe payment</td><td style="border: 1px solid #e5e7eb;">{{ $order->txn_id }}</td></tr>
-        <tr><td style="border: 1px solid #e5e7eb; font-weight: bold;">Date</td><td style="border: 1px solid #e5e7eb;">{{ optional($order->updated_at)->format('M j, Y H:i') }}</td></tr>
+        <tr><td style="border: 1px solid #e5e7eb; font-weight: bold;">Date</td><td style="border: 1px solid #e5e7eb;">{{ \App\Support\AdminTime::format($order->updated_at, 'M j, Y H:i') }}</td></tr>
     </table>
 
     <p style="margin-top: 16px; color: #6b7280; font-size: 13px;">You can review the order and the student's enrollment in the admin panel.</p>

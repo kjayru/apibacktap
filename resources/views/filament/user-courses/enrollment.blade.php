@@ -115,7 +115,7 @@
                 @endif
 
                 @if ($sign->created_at)
-                    <div style="margin-top:8px;color:#6b7280;font-size:12px;">Signed on {{ $sign->created_at->format('M d, Y H:i') }}</div>
+                    <div style="margin-top:8px;color:#6b7280;font-size:12px;">Signed on {{ \App\Support\AdminTime::format($sign->created_at) }}</div>
                 @endif
             </div>
         @endif

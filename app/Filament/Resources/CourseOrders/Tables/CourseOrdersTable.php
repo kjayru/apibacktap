@@ -48,6 +48,9 @@ class CourseOrdersTable
                 TextColumn::make('created_at')
                     ->label('Date')
                     ->dateTime('M d, Y H:i')
+                    // Declarada, como en las órdenes de eventos, para no depender sólo de
+                    // la zona global del panel (#1810).
+                    ->timezone(config('app.admin_timezone'))
                     ->sortable(),
             ])
             ->filters([
