@@ -10,8 +10,14 @@
     $li = 'margin:0 0 6px;';
 @endphp
 
+@php
+    // `preview` sirve el documento antes de firmarlo, que es lo que lee el alumno en el
+    // sitio: hasta ahora sólo veía tres frases y no el acuerdo que estaba aceptando (#1871).
+    $preview = $preview ?? false;
+@endphp
+
 <div style="font-size:14px;line-height:1.6;color:#111827;">
-    @if (! $sign)
+    @if (! $sign && ! $preview)
         <p style="color:#6b7280;">This user has not signed the enrollment agreement yet.</p>
     @else
         <div style="text-align:center;margin-bottom:16px;">
@@ -21,10 +27,10 @@
         <h2 style="margin:0 0 16px;font-size:18px;font-weight:700;">Enrollment agreement and eligibility notification</h2>
 
         <p style="margin:0 0 12px;">
-            I, <strong>{{ $sign->fullname }}</strong>
+            I, <strong>{{ $sign?->fullname ?: $signerName ?? '' }}</strong>
             understand that the online course “Level II Non-Commissioned Officer Training Course” I am enrolling in is <strong>non-refundable</strong> and the cost of the course is $45.00.
             I am aware that no security agencies are guaranteed or obligated to hire me solely by me taking this course and that this course does not license me as a security officer.
-            I understand that I am taking the above course in order to increase my knowledge in the field of security and only grants me a Certification of Completion. <strong>{{ $sign->initial }}</strong>
+            I understand that I am taking the above course in order to increase my knowledge in the field of security and only grants me a Certification of Completion. <strong>{{ $sign?->initial ?? '' }}</strong>
         </p>
 
         <h3 style="{{ $h3 }}">Notification of Eligibility:</h3>
@@ -90,7 +96,7 @@
 
         <h3 style="{{ $h3 }}">ACKNOWLEDGMENT:</h3>
         <p style="margin:0 0 12px;">
-            I <strong>{{ $sign->fullname }}</strong> confirm that I have been made aware of and fully understand
+            I <strong>{{ $sign?->fullname ?: $signerName ?? '' }}</strong> confirm that I have been made aware of and fully understand
             all the information listed above and have been informed that by taking this training course I am not guaranteed that the licensing agency will grant my license.<br><br>
             The information below was provided to me;<br>
             • The department’s current eligibility guidelines (the board’s administrative rules) issued under Occupations Code, Section 53.025;<br>
@@ -99,17 +105,19 @@
             • Any other state or local restriction or guideline used by the department to determine the eligibility of an individual who has been convicted of an offense
         </p>
 
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb;">
-            <div><strong>{{ $sign->legalname }}</strong></div>
-            <div><strong>{{ $sign->email }}</strong></div>
+        @if ($sign)
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb;">
+                <div><strong>{{ $sign->legalname }}</strong></div>
+                <div><strong>{{ $sign->email }}</strong></div>
 
-            @if (filled($sign->firma))
-                <img src="{{ $sign->firma }}" alt="Signature" style="display:block;margin-top:12px;max-height:120px;max-width:320px;width:auto;">
-            @endif
+                @if (filled($sign->firma))
+                    <img src="{{ $sign->firma }}" alt="Signature" style="display:block;margin-top:12px;max-height:120px;max-width:320px;width:auto;">
+                @endif
 
-            @if ($sign->created_at)
-                <div style="margin-top:8px;color:#6b7280;font-size:12px;">Signed on {{ $sign->created_at->format('M d, Y H:i') }}</div>
-            @endif
-        </div>
+                @if ($sign->created_at)
+                    <div style="margin-top:8px;color:#6b7280;font-size:12px;">Signed on {{ $sign->created_at->format('M d, Y H:i') }}</div>
+                @endif
+            </div>
+        @endif
     @endif
 </div>

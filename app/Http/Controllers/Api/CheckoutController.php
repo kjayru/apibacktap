@@ -171,7 +171,12 @@ class CheckoutController extends Controller
         abort_if($order->user_id !== $request->user()->id, 403, 'You do not have access to this order.');
 
         $course = json_decode($order->course, true);
-        $record = isset($course['id']) ? Course::find($course['id']) : null;
+
+        // La orden guarda el curso con la clave `course_id`; buscarlo por `id` no
+        // encontraba nunca el registro, así que la pantalla de compra correcta se quedaba
+        // sin la ficha del curso y sólo mostraba el botón de ir a Mis cursos (#1799, #1856).
+        $courseId = $course['course_id'] ?? $course['id'] ?? null;
+        $record = $courseId ? Course::find($courseId) : null;
 
         return response()->json(['success' => true, 'data' => [
             'id' => $order->id,

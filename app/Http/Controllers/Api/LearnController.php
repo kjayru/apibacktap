@@ -219,6 +219,25 @@ class LearnController extends Controller
         return $this->ok(['signed' => (bool) $sign]);
     }
 
+    /**
+     * El acuerdo de enrollment que el alumno acepta al firmar. Es el mismo documento que
+     * guarda el panel y que se imprime, para que no haya dos textos distintos: hasta
+     * ahora el alumno firmaba sin poder leerlo (#1871).
+     */
+    public function enrollmentAgreement(Request $request): JsonResponse
+    {
+        $sign = UserSign::where('user_id', $request->user()->id)->first();
+
+        return $this->ok([
+            'signed' => (bool) $sign,
+            'html' => view('filament.user-courses.enrollment', [
+                'sign' => $sign,
+                'preview' => true,
+                'signerName' => $request->user()->name,
+            ])->render(),
+        ]);
+    }
+
     public function sign(Request $request): JsonResponse
     {
         if (UserSign::where('user_id', $request->user()->id)->exists()) {

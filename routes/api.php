@@ -46,6 +46,7 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware('auth:sanctum')->prefix('learn')->group(function (): void {
         Route::get('/my-courses', [LearnController::class, 'myCourses']);
         Route::get('/sign-status', [LearnController::class, 'signStatus']);
+        Route::get('/enrollment-agreement', [LearnController::class, 'enrollmentAgreement']);
         Route::post('/sign', [LearnController::class, 'sign']);
         Route::get('/courses/{course:slug}/verify-access', [LearnController::class, 'verifyAccess']);
         Route::get('/courses/{course:slug}', [LearnController::class, 'courseDetail']);
