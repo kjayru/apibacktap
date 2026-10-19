@@ -8,7 +8,6 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use App\Filament\Pages\Configurations;
 use Filament\Navigation\NavigationGroup;
-use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -61,13 +60,6 @@ class AdminPanelProvider extends PanelProvider
             // limita los intentos, en lugar de escribir una a mano. `isSimple: false` la
             // muestra dentro del panel, con su menú, y no como una página suelta.
             ->profile(Configurations::class, isSimple: false)
-            ->navigationItems([
-                NavigationItem::make('Configurations')
-                    ->url(fn (): string => Configurations::getUrl())
-                    ->icon('heroicon-o-cog-6-tooth')
-                    ->group('Settings')
-                    ->isActiveWhen(fn (): bool => request()->routeIs(Configurations::getRouteName())),
-            ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

@@ -2,7 +2,10 @@
 
 namespace App\Filament\Pages;
 
+use BackedEnum;
 use Filament\Auth\Pages\EditProfile;
+use Filament\Support\Icons\Heroicon;
+use UnitEnum;
 
 /**
  * "Configurations" del menú: el administrador actualiza su acceso (#1886).
@@ -13,6 +16,12 @@ use Filament\Auth\Pages\EditProfile;
  */
 class Configurations extends EditProfile
 {
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
+
+    protected static string|UnitEnum|null $navigationGroup = 'Settings';
+
+    protected static ?string $navigationLabel = 'Configurations';
+
     public static function getLabel(): string
     {
         return 'Configurations';
