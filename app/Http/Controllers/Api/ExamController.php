@@ -48,12 +48,10 @@ class ExamController extends Controller
                 'duration_seconds' => $exam->duration ? ((int) $exam->duration * 60) : 7200,
             ],
             'pass_threshold' => CourseAccessService::PASS_THRESHOLD,
-            'attempts_used' => (int) $userCourse->intentos,
-            'attempts_left' => max(0, CourseAccessService::MAX_EXAM_ATTEMPTS - (int) $userCourse->intentos),
-            'max_attempts' => CourseAccessService::MAX_EXAM_ATTEMPTS,
             'approved' => (bool) $userCourse->aprobado,
             'in_progress' => (bool) ($attempt && (int) $attempt->complete !== 1),
             'remaining_time' => $this->remainingTime($attempt, $exam),
+        ] + $this->attemptsPayload($userCourse) + [
             'total_questions' => $questions->count(),
             'questions' => $questions->map(fn (ExamQuestion $question) => [
                 'id' => $question->id,
@@ -156,8 +154,10 @@ class ExamController extends Controller
                 ] + $this->attemptsPayload($userCourse->refresh()));
             }
 
-            $inProgress->update(['intentos' => (int) $inProgress->intentos + 1, 'tiempo' => $validated['remaining_time'] ?? '00:00:00', 'resultado' => 0, 'complete' => 1, 'evento' => 'excedio', 'started_at' => null]);
-            $userCourse->update(['aprobado' => 0, 'intentos' => (int) $userCourse->intentos + 1]);
+            DB::transaction(function () use ($inProgress, $userCourse, $validated): void {
+                $inProgress->update(['intentos' => (int) $inProgress->intentos + 1, 'tiempo' => $validated['remaining_time'] ?? '00:00:00', 'resultado' => 0, 'complete' => 1, 'evento' => 'excedio', 'started_at' => null]);
+                $userCourse->update(['aprobado' => 0, 'intentos' => (int) $userCourse->intentos + 1]);
+            });
 
             return $this->ok([
                 'completed' => false,
@@ -166,11 +166,17 @@ class ExamController extends Controller
             ] + $this->attemptsPayload($userCourse->refresh()));
         }
 
-        $attempt = $inProgress ?: UserCourseExam::firstOrCreate(
-            ['user_course_id' => $userCourse->id, 'exam_id' => $exam->id],
-            ['intentos' => 0, 'complete' => 0, 'resultado' => 0, 'tiempo' => '00:00:00', 'started_at' => now()],
-        );
+        // Sin un intento abierto no hay nada que corregir: el examen se empieza en
+        // /exam/start. Antes se creaba uno al vuelo, así que un segundo envío —un doble
+        // clic o un reintento de la red— volvía a corregir y gastaba otro intento.
+        if (! $inProgress) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This exam attempt is already closed. Start the exam again to answer it.',
+            ], 422);
+        }
 
+        $attempt = $inProgress;
         $attemptNumber = (int) $attempt->intentos + 1;
 
         // La nota se calcula sobre TODAS las preguntas del examen, no sobre las respuestas
@@ -229,22 +235,26 @@ class ExamController extends Controller
         $percentage = $totalQuestions > 0 ? round($totalCorrect * 100 / $totalQuestions, 2) : 0.0;
         $passed = $totalQuestions > 0 && $percentage >= CourseAccessService::PASS_THRESHOLD;
 
-        $attempt->update(['resultado' => $percentage]);
+        // Los dos contadores se guardan juntos: el del examen ya se escribió dentro de la
+        // corrección, así que el de la matrícula va en la misma transacción. Sueltos, un
+        // corte entre ambos los dejaba desparejados para siempre (#1870).
+        DB::transaction(function () use ($attempt, $percentage, $passed, $userCourse): void {
+            $attempt->update(['resultado' => $percentage]);
 
-        if ($passed) {
             // El intento bueno también se cuenta como rendido. Antes sólo subía el contador
             // del examen y no el de la matrícula, así que el alumno y el panel mostraban
             // números distintos para el mismo curso (#1870).
-            $userCourse->update(['aprobado' => 1, 'finalizado' => 1, 'intentos' => (int) $userCourse->intentos + 1]);
-            $this->sendMail($userCourse->user?->email, new CoursePassed($userCourse, $course));
-        } else {
-            $userCourse->update(['aprobado' => 0, 'intentos' => (int) $userCourse->intentos + 1]);
+            $userCourse->update($passed
+                ? ['aprobado' => 1, 'finalizado' => 1, 'intentos' => (int) $userCourse->intentos + 1]
+                : ['aprobado' => 0, 'intentos' => (int) $userCourse->intentos + 1]);
+        });
 
-            // Como en producción: el aviso de no aprobado sale al agotar los intentos,
-            // no en cada suspenso (#1831).
-            if ((int) $userCourse->refresh()->intentos >= CourseAccessService::MAX_EXAM_ATTEMPTS) {
-                $this->sendMail($userCourse->user?->email, new CourseFailed($userCourse, $course));
-            }
+        // Como en producción: el aviso de no aprobado sale al agotar los intentos, no en
+        // cada suspenso (#1831).
+        if ($passed) {
+            $this->sendMail($userCourse->user?->email, new CoursePassed($userCourse, $course));
+        } elseif ((int) $userCourse->refresh()->intentos >= CourseAccessService::MAX_EXAM_ATTEMPTS) {
+            $this->sendMail($userCourse->user?->email, new CourseFailed($userCourse, $course));
         }
 
         return $this->ok([
@@ -377,16 +387,20 @@ class ExamController extends Controller
             return false;
         }
 
-        $attempt->update([
-            'intentos' => (int) $attempt->intentos + 1,
-            'tiempo' => '00:00:00',
-            'resultado' => 0,
-            'complete' => 1,
-            'evento' => 'excedio',
-            'started_at' => null,
-        ]);
+        // Los dos contadores, juntos (#1870).
+        DB::transaction(function () use ($attempt, $userCourse): void {
+            $attempt->update([
+                'intentos' => (int) $attempt->intentos + 1,
+                'tiempo' => '00:00:00',
+                'resultado' => 0,
+                'complete' => 1,
+                'evento' => 'excedio',
+                'started_at' => null,
+            ]);
 
-        $userCourse->update(['aprobado' => 0, 'intentos' => (int) $userCourse->intentos + 1]);
+            $userCourse->update(['aprobado' => 0, 'intentos' => (int) $userCourse->intentos + 1]);
+        });
+
         $userCourse->refresh();
 
         return true;

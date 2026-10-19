@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserCourse;
 use App\Models\UserCourseChapter;
 use App\Models\UserCourseChapterContent;
+use App\Models\UserCourseExam;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -158,7 +159,37 @@ class CourseAccessService
         return $this->examLocked($userCourse)
             && (int) $userCourse->caducado !== 1
             && (int) $userCourse->reiniciado !== 1
+            && $this->retakeDaysLeft($userCourse) > 0
             && ! UserCourse::where('parent_id', $userCourse->id)->exists();
+    }
+
+    /**
+     * Hasta cuándo se puede repetir el curso tras agotar los intentos: RETAKE_DAYS desde
+     * el día del resultado. El sitio anunciaba ese plazo pero no lo comprobaba, así que
+     * se podía reiniciar meses después (#1830).
+     */
+    public function retakeDeadline(UserCourse $userCourse): ?Carbon
+    {
+        if (! $this->examLocked($userCourse)) {
+            return null;
+        }
+
+        $lastAttempt = UserCourseExam::where('user_course_id', $userCourse->id)
+            ->where('complete', 1)
+            ->latest('updated_at')
+            ->first();
+
+        $resultDate = $lastAttempt?->updated_at ?? $userCourse->updated_at;
+
+        return $resultDate ? $resultDate->copy()->addDays(self::RETAKE_DAYS) : null;
+    }
+
+    /** Días que quedan para repetirlo, o null si no está en esa situación. */
+    public function retakeDaysLeft(UserCourse $userCourse): ?int
+    {
+        $deadline = $this->retakeDeadline($userCourse);
+
+        return $deadline ? max(0, (int) ceil(Carbon::now()->diffInDays($deadline, false))) : null;
     }
 
     public function canRepurchase(?UserCourse $userCourse): bool
@@ -195,6 +226,10 @@ class CourseAccessService
             'can_restart' => $this->canRestart($userCourse),
             'can_repurchase' => $this->canRepurchase($userCourse),
             'retake_days' => self::RETAKE_DAYS,
+            // Los días que quedan del plazo para repetir el curso. La pantalla de curso
+            // no aprobado pintaba los días de la matrícula y anunciaba 30 donde el plazo
+            // real son 15 (#1830).
+            'retake_days_left' => $this->retakeDaysLeft($userCourse),
         ];
     }
 

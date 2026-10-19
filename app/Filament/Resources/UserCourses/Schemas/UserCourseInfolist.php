@@ -22,8 +22,12 @@ class UserCourseInfolist
                 IconEntry::make('aprobado')
                     ->boolean()
                     ->placeholder('-'),
-                IconEntry::make('intentos')
-                    ->boolean()
+                // `intentos` es un contador de 0 a 3, no un sí o no: pintado como icono,
+                // un 2 salía como tic verde y un 0 como cruz roja (#1870). La tabla ya lo
+                // mostraba bien; faltaba la ficha de detalle.
+                TextEntry::make('intentos')
+                    ->label('Exam attempts')
+                    ->formatStateUsing(fn ($state): string => (int) $state . ' / ' . \App\Services\CourseAccessService::MAX_EXAM_ATTEMPTS)
                     ->placeholder('-'),
                 IconEntry::make('reiniciado')
                     ->boolean()

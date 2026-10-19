@@ -84,7 +84,7 @@ class CourseRulesTest extends TestCase
 
         $correct = DB::table('exam_question_options')->where('resultado', 1)->orderBy('id')->first();
 
-        $response = $this->postJson('/api/v1/learn/courses/basic/exam', [
+        $response = $this->takeExam([
             'answers' => [['exam_question_id' => $correct->exam_question_id, 'exam_question_option_id' => $correct->id]],
         ])->assertOk();
 
@@ -101,7 +101,7 @@ class CourseRulesTest extends TestCase
         $this->completeCourseContents();
 
         for ($i = 1; $i <= 3; $i++) {
-            $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk()
+            $this->takeExam()->assertOk()
                 ->assertJsonPath('data.attempts_used', $i);
         }
 
@@ -152,7 +152,7 @@ class CourseRulesTest extends TestCase
         $this->enroll();
         Sanctum::actingAs($this->user);
         $this->completeCourseContents();
-        $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk();
+        $this->takeExam()->assertOk();
 
         $this->postJson('/api/v1/learn/courses/basic/exam/reset')->assertOk();
 
@@ -198,11 +198,11 @@ class CourseRulesTest extends TestCase
         Sanctum::actingAs($this->user);
         $this->completeCourseContents();
 
-        $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk();
+        $this->takeExam()->assertOk();
         $this->assertCountersMatch('tras suspender');
 
         // Y ahora aprueba: el intento bueno también cuenta como rendido.
-        $this->postJson('/api/v1/learn/courses/basic/exam', [
+        $this->takeExam([
             'answers' => [['exam_question_id' => 1, 'exam_question_option_id' => 1]],
         ])->assertOk();
         $this->assertCountersMatch('tras aprobar');
@@ -238,6 +238,92 @@ class CourseRulesTest extends TestCase
         $this->completeChapterOne();
 
         $this->getJson('/api/v1/learn/courses/basic/chapters/chapter-1/quiz')->assertOk();
+    }
+
+    /**
+     * El recorrido real del alumno: empieza el examen, lo entrega, lo reinicia y lo
+     * vuelve a entregar. Los tests anteriores enviaban sin pasar por "start", que es el
+     * único camino que QA no recorre nunca (#1870, #1824).
+     */
+    public function test_two_failures_through_the_real_flow_count_one_each(): void
+    {
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+
+        $this->postJson('/api/v1/learn/courses/basic/exam/start')->assertOk();
+        $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk()
+            ->assertJsonPath('data.attempts_used', 1)
+            ->assertJsonPath('data.attempts_left', 2);
+
+        $this->postJson('/api/v1/learn/courses/basic/exam/reset')->assertOk();
+        $this->postJson('/api/v1/learn/courses/basic/exam/start')->assertOk();
+        $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk()
+            ->assertJsonPath('data.attempts_used', 2)
+            ->assertJsonPath('data.attempts_left', 1);
+
+        $this->assertSame(2, (int) UserCourse::latest('id')->first()->intentos);
+    }
+
+    /** Un segundo envío sin volver a empezar no puede gastar otro intento. */
+    public function test_sending_the_exam_twice_does_not_burn_two_attempts(): void
+    {
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+
+        $this->postJson('/api/v1/learn/courses/basic/exam/start')->assertOk();
+        $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk()
+            ->assertJsonPath('data.attempts_used', 1);
+
+        // El mismo envío repetido: un doble clic o un reintento de la red.
+        $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertStatus(422);
+
+        $this->assertSame(1, (int) UserCourse::latest('id')->first()->intentos);
+    }
+
+    /** Los intentos gastados y los que quedan siempre suman el máximo. */
+    public function test_used_and_left_attempts_always_add_up(): void
+    {
+        $this->enroll();
+        Sanctum::actingAs($this->user);
+        $this->completeCourseContents();
+
+        foreach ([1, 2] as $vuelta) {
+            $this->postJson('/api/v1/learn/courses/basic/exam/start')->assertOk();
+            $data = $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk()->json('data');
+
+            $this->assertSame(
+                $data['max_attempts'],
+                $data['attempts_used'] + $data['attempts_left'],
+                "Los intentos gastados y los restantes no cuadran con el máximo en la vuelta {$vuelta}.",
+            );
+
+            $this->postJson('/api/v1/learn/courses/basic/exam/reset');
+        }
+    }
+
+    /**
+     * Tras agotar los intentos hay 15 días para repetir el curso; pasados, sólo queda
+     * comprarlo otra vez. El sitio anunciaba el plazo pero no lo comprobaba (#1830).
+     */
+    public function test_the_retake_window_closes_after_fifteen_days(): void
+    {
+        $userCourse = $this->enroll(['intentos' => 3]);
+        Sanctum::actingAs($this->user);
+
+        $estado = $this->getJson('/api/v1/learn/courses/basic')->assertOk()->json('data');
+        $this->assertTrue($estado['can_restart']);
+        $this->assertSame(CourseAccessService::RETAKE_DAYS, $estado['retake_days_left']);
+
+        Carbon::setTestNow(Carbon::now()->addDays(CourseAccessService::RETAKE_DAYS + 1));
+
+        $vencido = $this->getJson('/api/v1/learn/courses/basic')->assertOk()->json('data');
+        $this->assertFalse($vencido['can_restart'], 'El plazo venció y aun así se ofrecía reiniciar.');
+        $this->assertSame(0, $vencido['retake_days_left']);
+        $this->postJson('/api/v1/learn/courses/basic/restart')->assertStatus(422);
+
+        Carbon::setTestNow();
     }
 
     public function test_a_chapter_is_read_from_its_own_course_even_if_another_course_repeats_the_name(): void
@@ -356,13 +442,13 @@ class CourseRulesTest extends TestCase
 
         // Dos suspensos: todavía no se avisa, como en producción.
         for ($i = 1; $i <= 2; $i++) {
-            $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk();
+            $this->takeExam()->assertOk();
         }
 
         Mail::assertNothingSent();
 
         // Al tercero, el aviso de no aprobado con sus 15 días.
-        $this->postJson('/api/v1/learn/courses/basic/exam', ['answers' => []])->assertOk();
+        $this->takeExam()->assertOk();
 
         Mail::assertSent(CourseFailed::class, fn (CourseFailed $mail): bool => $mail->hasTo('student@example.com'));
 
@@ -372,7 +458,7 @@ class CourseRulesTest extends TestCase
         $this->completeCourseContents();
         $correctas = DB::table('exam_question_options')->where('resultado', 1)->orderBy('id')->get();
 
-        $this->postJson('/api/v1/learn/courses/basic/exam', [
+        $this->takeExam([
             'answers' => $correctas->map(fn ($option): array => [
                 'exam_question_id' => $option->exam_question_id,
                 'exam_question_option_id' => $option->id,
@@ -514,6 +600,14 @@ class CourseRulesTest extends TestCase
             'caducado' => 0,
             'finalizado' => 0,
         ], $overrides));
+    }
+
+    /** Entregar el examen como lo hace el alumno: empezándolo antes. */
+    private function takeExam(array $payload = ['answers' => []]): \Illuminate\Testing\TestResponse
+    {
+        $this->postJson('/api/v1/learn/courses/basic/exam/start');
+
+        return $this->postJson('/api/v1/learn/courses/basic/exam', $payload);
     }
 
     private function completeChapterOne(): void
