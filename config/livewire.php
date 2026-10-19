@@ -70,13 +70,9 @@ return [
         'rules' => ['required', 'file', 'max:512000'], // 500 MB, alineado con upload_max_filesize
         'directory' => null,   // Example: 'tmp'                      | Default: 'livewire-tmp'
         'middleware' => null,  // Example: 'throttle:5,1'             | Default: 'throttle:60,1'
-        // Los vídeos van sin previsualización a propósito: el reproductor se montaba
-        // encima de la barra de estado y tapaba el aviso de subida terminada, de ahí que
-        // pareciera que el archivo no se cargaba (#1691, #1703). Las imágenes sí se
-        // previsualizan, que es donde esa vista ayuda.
         'preview_mimes' => [   // Supported file types for temporary pre-signed file URLs...
-            'png', 'gif', 'bmp', 'svg', 'wav',
-            'mp3', 'm4a',
+            'png', 'gif', 'bmp', 'svg', 'wav', 'mp4',
+            'mov', 'avi', 'wmv', 'mp3', 'm4a',
             'jpg', 'jpeg', 'mpga', 'webp', 'wma',
         ],
         'max_upload_time' => 30, // Max duration (in minutes) before an upload is invalidated...

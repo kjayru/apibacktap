@@ -37,6 +37,9 @@ class ChaptercontentForm
                 ->directory('video')
                 ->acceptedFileTypes(['video/mp4', 'video/webm', 'video/ogg'])
                 ->maxSize(512000)
+                // Sin reproductor tras la subida: tapaba el aviso de archivo cargado
+                // (#1691, #1703). El póster, al ser imagen, sí se previsualiza.
+                ->previewable(false)
                 ->helperText('MP4, WebM or OGG. Maximum size 500 MB.')
                 ->required(),
             FileUpload::make('poster')
@@ -52,6 +55,7 @@ class ChaptercontentForm
                 ->directory('audio')
                 ->acceptedFileTypes(['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'])
                 ->maxSize(512000)
+                ->previewable(false)
                 ->helperText('MP3, WAV or OGG. Maximum size 500 MB. Optional.'),
             $withChapter
                 ? Select::make('chapter_id')

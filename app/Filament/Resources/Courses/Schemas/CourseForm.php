@@ -54,6 +54,11 @@ class CourseForm
                     ->directory('video')
                     ->acceptedFileTypes(['video/mp4', 'video/webm', 'video/ogg'])
                     ->maxSize(512000)
+                    // Sin reproductor tras la subida: se montaba encima de la barra de
+                    // estado y tapaba el aviso de "Upload complete" en verde, de ahí que
+                    // pareciera que el archivo no se cargaba (#1691, #1703). Las imágenes
+                    // sí se previsualizan, que es donde esa vista ayuda.
+                    ->previewable(false)
                     ->helperText('MP4, WebM or OGG. Maximum size 500 MB.')
                     ->columnSpanFull()
                     ->required()
