@@ -32,3 +32,8 @@ Thumbs.db
 
 # Copias del .env hechas al depurar: nunca al repositorio.
 .env.bak-*
+
+# Capturas de pantalla de las revisiones, que no son del proyecto.
+*.png
+!public/**/*.png
+!resources/**/*.png
