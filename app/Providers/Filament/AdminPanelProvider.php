@@ -6,7 +6,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Auth\Pages\EditProfile;
+use App\Filament\Pages\Configurations;
 use Filament\Navigation\NavigationGroup;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
@@ -60,13 +60,13 @@ class AdminPanelProvider extends PanelProvider
             // la pantalla de cuenta que ya trae el panel, que pide la contraseña actual y
             // limita los intentos, en lugar de escribir una a mano. `isSimple: false` la
             // muestra dentro del panel, con su menú, y no como una página suelta.
-            ->profile(isSimple: false)
+            ->profile(Configurations::class, isSimple: false)
             ->navigationItems([
                 NavigationItem::make('Configurations')
-                    ->url(fn (): string => EditProfile::getUrl())
+                    ->url(fn (): string => Configurations::getUrl())
                     ->icon('heroicon-o-cog-6-tooth')
                     ->group('Settings')
-                    ->isActiveWhen(fn (): bool => request()->routeIs(EditProfile::getRouteName())),
+                    ->isActiveWhen(fn (): bool => request()->routeIs(Configurations::getRouteName())),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
