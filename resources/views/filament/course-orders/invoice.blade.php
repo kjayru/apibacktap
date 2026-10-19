@@ -51,9 +51,9 @@
 
         <div style="flex:1 1 200px;">
             <div style="{{ $label }}word-break:break-all;">Invoice #{{ $order->txn_id }}</div>
-            <div style="margin-top:12px;"><span style="{{ $label }}">Order ID:</span> {{ $order->id }}</div>
+            <div style="margin-top:12px;"><span style="{{ $label }}">Order Nº:</span> {{ $order->id }}</div>
             @if ($order->order_id)
-                <div><span style="{{ $label }}">Order Nº:</span> {{ $order->order_id }}</div>
+                <div><span style="{{ $label }}">Order ID:</span> {{ $order->order_id }}</div>
             @endif
             @if ($order->payment_status)
                 <div><span style="{{ $label }}">Payment status:</span> {{ $order->payment_status }}</div>
