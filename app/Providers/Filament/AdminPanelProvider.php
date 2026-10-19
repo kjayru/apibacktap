@@ -8,10 +8,12 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use App\Filament\Pages\Configurations;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Filament\Support\Facades\FilamentView;
@@ -60,6 +62,16 @@ class AdminPanelProvider extends PanelProvider
             // limita los intentos, en lugar de escribir una a mano. `isSimple: false` la
             // muestra dentro del panel, con su menú, y no como una página suelta.
             ->profile(Configurations::class, isSimple: false)
+            // En el menú lateral, bajo Settings, que es donde la tenía el sitio anterior.
+            // El panel la pone sola en el menú de la cuenta, arriba a la derecha, pero no
+            // en la navegación: las pantallas de cuenta no se registran ahí (#1886).
+            ->navigationItems([
+                NavigationItem::make('Configurations')
+                    ->url(fn (): string => Configurations::getUrl())
+                    ->icon(Heroicon::OutlinedCog6Tooth)
+                    ->group('Settings')
+                    ->isActiveWhen(fn (): bool => request()->routeIs(Configurations::getRouteName())),
+            ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
