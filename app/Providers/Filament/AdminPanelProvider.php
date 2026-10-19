@@ -6,7 +6,9 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Auth\Pages\EditProfile;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -54,6 +56,18 @@ class AdminPanelProvider extends PanelProvider
             // El panel no declaraba icono y el favicon.ico del proyecto estaba vacío, así
             // que la pestaña salía sin marca (#1879).
             ->favicon(asset('images/favicon-tap.png'))
+            // Configurations: el administrador cambia su propia contraseña (#1886). Se usa
+            // la pantalla de cuenta que ya trae el panel, que pide la contraseña actual y
+            // limita los intentos, en lugar de escribir una a mano. `isSimple: false` la
+            // muestra dentro del panel, con su menú, y no como una página suelta.
+            ->profile(isSimple: false)
+            ->navigationItems([
+                NavigationItem::make('Configurations')
+                    ->url(fn (): string => EditProfile::getUrl())
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->group('Settings')
+                    ->isActiveWhen(fn (): bool => request()->routeIs(EditProfile::getRouteName())),
+            ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
