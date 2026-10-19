@@ -6,7 +6,6 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -45,7 +44,8 @@ class PostsTable
                     ->sortable(),
             ])
             ->recordActions([
-                ViewAction::make(),
+                // Sin "View": el blog se lee en el sitio, y en el panel sólo se edita,
+                // como ya se hizo en Categorías e Industrias (#1885).
                 EditAction::make(),
                 DeleteAction::make(),
             ])
