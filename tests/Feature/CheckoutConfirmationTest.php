@@ -75,6 +75,31 @@ class CheckoutConfirmationTest extends TestCase
             ->assertJsonPath('data.course_title', 'Gone');
     }
 
+    /**
+     * El identificador de la orden es la marca de tiempo de la compra, como en el sitio
+     * anterior. Se estaba guardando un UUID de 36 caracteres, que ni coincidía con el
+     * formato de las órdenes antiguas ni cabía en la columna de la tabla (#1884).
+     */
+    public function test_the_order_id_is_a_timestamp_like_in_the_previous_site(): void
+    {
+        [$user, $course] = $this->makeOrderOwner();
+
+        $order = CourseOrder::create([
+            'user_id' => $user->id,
+            'course' => json_encode(['course_id' => $course->id, 'slug' => $course->slug, 'title' => $course->titulo]),
+            'name' => $user->name,
+            'email' => $user->email,
+            'price' => 95,
+            'amount' => 95,
+            'currency' => 'usd',
+            'order_id' => (string) now()->timestamp,
+            'checkout_session_id' => 'cs_test_timestamp',
+            'payment_status' => 'pending',
+        ]);
+
+        $this->assertMatchesRegularExpression('/^\d{10}$/', $order->order_id, 'El identificador de la orden no es una marca de tiempo.');
+    }
+
     /** @return array{0: User, 1: Course} */
     private function makeOrderOwner(): array
     {

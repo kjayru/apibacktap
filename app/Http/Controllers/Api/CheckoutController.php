@@ -12,7 +12,6 @@ use App\Models\Order;
 use App\Services\CartPricingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Stripe\Checkout\Session as StripeCheckoutSession;
 use Stripe\Stripe;
 
@@ -74,7 +73,10 @@ class CheckoutController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'price' => (string) $quote['price'],
-            'order_id' => (string) Str::uuid(),
+            // La marca de tiempo de la compra, como en el sitio anterior: un UUID de 36
+            // caracteres no coincidía con el formato de las órdenes antiguas y desbordaba
+            // la columna de la tabla (#1884).
+            'order_id' => (string) now()->timestamp,
             'currency' => 'usd',
             'amount' => (string) $quote['total'],
             'txn_id' => null,
