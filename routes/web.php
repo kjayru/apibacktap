@@ -4,9 +4,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\CertificateController;
 use App\Http\Controllers\Admin\PrintController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// El dominio sólo sirve al panel, así que la raíz lleva directo al acceso en lugar de a
+// la pantalla de bienvenida de Laravel, que no tenía nada que ver con TAP. Quien ya haya
+// entrado no ve el formulario: el propio panel lo manda al escritorio.
+Route::get('/', fn () => redirect()->route('filament.admin.auth.login'));
 
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('user-courses/{userCourse}/certificate', [CertificateController::class, 'show'])

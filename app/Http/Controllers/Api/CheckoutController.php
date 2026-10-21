@@ -182,6 +182,10 @@ class CheckoutController extends Controller
 
         return response()->json(['success' => true, 'data' => [
             'id' => $order->id,
+            // Las dos compras acaban en la misma pantalla, pero el sitio anterior sólo
+            // contaba la del curso presencial en Google Ads. Sin esto el front no puede
+            // distinguirlas y acabaría contando de más o de menos.
+            'type' => 'course',
             'course_title' => $course['title'] ?? null,
             'course_slug' => $course['slug'] ?? null,
             'amount' => $order->amount,
@@ -214,6 +218,7 @@ class CheckoutController extends Controller
 
         return response()->json(['success' => true, 'data' => [
             'id' => $order->id,
+            'type' => 'event',
             'course_title' => $order->item_name,
             'course_slug' => $event?->slug,
             'amount' => $order->paid_amount,

@@ -54,6 +54,11 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->brandName('TAP')
+            // El mismo logo que la barra de navegación del sitio, para que la caja de
+            // acceso del panel se reconozca como TAP y no como un Filament cualquiera.
+            // El archivo ya estaba en public/images y es idéntico al del front.
+            ->brandLogo(asset('images/Logo-TAP.png'))
+            ->brandLogoHeight('4.5rem')
             // El panel no declaraba icono y el favicon.ico del proyecto estaba vacío, así
             // que la pestaña salía sin marca (#1879).
             ->favicon(asset('images/favicon-tap.png'))
