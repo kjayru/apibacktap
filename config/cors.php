@@ -19,7 +19,15 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_filter([env('FRONTEND_URL')]),
+    // El sitio vive en FRONTEND_URL, pero durante el traspaso a producción conviven dos
+    // direcciones —la definitiva y la de pruebas—, y con una sola permitida el navegador
+    // bloquea todas las llamadas desde la otra: el catálogo se ve vacío y no hay error
+    // visible, sólo avisos en la consola. CORS_EXTRA_ORIGINS admite las demás, separadas
+    // por comas.
+    'allowed_origins' => array_values(array_unique(array_filter(array_map(
+        'trim',
+        array_merge([(string) env('FRONTEND_URL')], explode(',', (string) env('CORS_EXTRA_ORIGINS', ''))),
+    )))),
 
     'allowed_origins_patterns' => [],
 
