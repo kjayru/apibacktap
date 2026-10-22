@@ -44,8 +44,13 @@ class InformationInfolist
                             ->label('Position applied for and desired pay')
                             // Respuesta larga: a tres columnas se cortaba.
                             ->columnSpanFull(),
+                        // Desde #1888 se pueden marcar varios turnos y se guardan
+                        // serializados. Las solicitudes anteriores guardaron un texto
+                        // suelto ("1st Shift") y se siguen mostrando tal cual.
                         TextEntry::make('whichshift')
-                            ->label('Which shift are you applying for?'),
+                            ->label('Which shifts are you applying for?')
+                            ->formatStateUsing(fn (?string $state): string => static::appliedShifts($state))
+                            ->placeholder('-'),
                         // Se guarda serializado, como en el sitio anterior: día => número si
                         // está marcado, cadena vacía si no. Se muestra como en producción,
                         // "Monday Tuesday Wednesday" (#1434).
@@ -180,6 +185,22 @@ class InformationInfolist
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    /**
+     * Los turnos marcados. Admite los dos formatos que conviven en la tabla: la lista
+     * serializada que guarda el formulario desde #1888 y el texto suelto de las 1 138
+     * solicitudes anteriores, que no se tocaron para no reinterpretar lo que marcaron.
+     */
+    public static function appliedShifts(?string $raw): string
+    {
+        $shifts = @unserialize((string) $raw, ['allowed_classes' => false]);
+
+        if (! is_array($shifts)) {
+            return (string) $raw;
+        }
+
+        return collect($shifts)->filter(fn ($value): bool => filled($value))->implode(', ');
     }
 
     public static function availableDays(?string $raw): string

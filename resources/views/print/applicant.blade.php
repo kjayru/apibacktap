@@ -6,6 +6,7 @@
         $military = $applicant->military;
         $disclaimer = $applicant->disclaimer;
         $dias = \App\Filament\Resources\Information\Schemas\InformationInfolist::availableDays($applicant->whichday);
+        $turnos = \App\Filament\Resources\Information\Schemas\InformationInfolist::appliedShifts($applicant->whichshift);
     @endphp
 
     <h1>Employment application</h1>
@@ -24,7 +25,7 @@
         <tr><th>Social security no.</th><td>{{ $applicant->socialnumber }}</td></tr>
         <tr><th>Place of birth</th><td>{{ $applicant->placebirth }}</td></tr>
         <tr><th>Position applied for and desired pay</th><td>{{ $applicant->appliedpay }}</td></tr>
-        <tr><th>Which shift are you applying for?</th><td>{{ $applicant->whichshift }}</td></tr>
+        <tr><th>Which shifts are you applying for?</th><td>{{ $turnos }}</td></tr>
         <tr><th>Which days are you available?</th><td>{{ $dias }}</td></tr>
         <tr><th>Are you a citizen of the United States?</th><td>{{ $applicant->citizen }}</td></tr>
         <tr><th>If no, are you authorized to work in the U.S.?</th><td>{{ $applicant->authorized }}</td></tr>

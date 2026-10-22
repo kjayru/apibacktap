@@ -33,7 +33,7 @@ class PublicSiteController extends Controller
     private const APPLICANT_REQUIRED_COLUMNS = [
         'lastname', 'firstname', 'mi', 'date', 'address', 'city', 'state', 'zipcode',
         'phone', 'email', 'birthday', 'socialnumber', 'placebirth', 'appliedpay',
-        'whichshift', 'citizen', 'authorized', 'worked', 'convicted', 'indictment',
+        'citizen', 'authorized', 'worked', 'convicted', 'indictment',
     ];
 
     public function home(): JsonResponse
@@ -293,7 +293,9 @@ class PublicSiteController extends Controller
             'socialnumber' => ['nullable', 'string', 'max:20'],
             'placebirth' => ['nullable', 'string', 'max:100'],
             'appliedpay' => ['nullable', 'string', 'max:255'],
-            'whichshift' => ['nullable', 'string'],
+            // Desde #1888 el aspirante puede marcar varios turnos, no uno.
+            'shifts' => ['nullable', 'array'],
+            'shifts.*' => ['string', 'max:40'],
             'days' => ['nullable', 'array'],
             'citizen' => ['nullable', 'string', 'max:10'],
             'authorized' => ['nullable', 'string', 'max:10'],
@@ -313,7 +315,7 @@ class PublicSiteController extends Controller
 
         $information = DB::transaction(function () use ($request, $validated): Information {
             $inf = new Information;
-            foreach (['lastname', 'firstname', 'mi', 'date', 'address', 'apartment', 'city', 'state', 'zipcode', 'phone', 'email', 'birthday', 'socialnumber', 'placebirth', 'appliedpay', 'whichshift', 'citizen', 'authorized', 'worked', 'when', 'convicted', 'explain1', 'indictment', 'explain2'] as $field) {
+            foreach (['lastname', 'firstname', 'mi', 'date', 'address', 'apartment', 'city', 'state', 'zipcode', 'phone', 'email', 'birthday', 'socialnumber', 'placebirth', 'appliedpay', 'citizen', 'authorized', 'worked', 'when', 'convicted', 'explain1', 'indictment', 'explain2'] as $field) {
                 $value = $request->input($field);
 
                 // La tabla viene del sitio anterior y varias columnas no admiten nulos.
@@ -322,6 +324,9 @@ class PublicSiteController extends Controller
                 // servidor (#1774).
                 $inf->{$field} = $value ?? (in_array($field, self::APPLICANT_REQUIRED_COLUMNS, true) ? '' : null);
             }
+            // Los turnos y los días se guardan igual: varias respuestas en una columna
+            // que el sitio anterior dejó como texto. La columna no admite nulos.
+            $inf->whichshift = serialize(array_values($request->input('shifts', [])));
             $inf->whichday = serialize($this->dayMap($request->input('days', [])));
             $inf->save();
 
@@ -428,7 +433,7 @@ class PublicSiteController extends Controller
         $form->condicional = serialize($validated['condicional'] ?? []);
         $form->save();
 
-        $this->sendRawNotification('TAP Form 8850', "New Form 8850 submission\nID: {$form->id}\nName: {$form->yourname}");
+        $this->sendRawNotification("TAP Form 8850 — {$form->yourname}", $this->form8850EmailText($form));
 
         return response()->json(['success' => true, 'message' => 'Form 8850 submitted successfully.', 'data' => ['id' => $form->id]], 201);
     }
@@ -582,5 +587,53 @@ class PublicSiteController extends Controller
     private function contactEmailText(Contact $contact): string
     {
         return "Name: {$contact->name}\nEmail: {$contact->email}\nPhone: {$contact->phone}\nOrigin: {$contact->origen}\n\n{$contact->message}";
+    }
+
+    /**
+     * El formulario 8850 entero en el aviso, no sólo el nombre (#1874): hasta ahora había
+     * que entrar al panel para ver qué había enviado el solicitante.
+     *
+     * El número de la seguridad social va enmascarado. Un correo no viaja cifrado y se
+     * queda guardado en el buzón de quien lo reciba; el número completo está a un clic,
+     * en el panel, que pide contraseña.
+     */
+    private function form8850EmailText(Form $form): string
+    {
+        $lineas = [
+            "Name:           {$form->yourname}",
+            'SSN:            '.$this->maskedSsn($form->socialnumber),
+            "Address:        {$form->address}",
+            "City / State:   {$form->citystate}",
+            "Country:        {$form->country}",
+            "Phone:          {$form->telephone}",
+            "Date of birth:  {$form->birthday}",
+        ];
+
+        $marcados = $form->checked_statements;
+
+        $lineas[] = '';
+        $lineas[] = $marcados === []
+            ? 'Checked statements: none.'
+            : 'Checked statements:';
+
+        foreach ($marcados as $valor) {
+            $lineas[] = '  '.Form::statementNumber($valor).'. '.(Form::STATEMENTS[$valor] ?? '(unknown statement)');
+        }
+
+        $lineas[] = '';
+        $lineas[] = 'Full submission, including the complete SSN:';
+        $lineas[] = rtrim(config('app.url'), '/')."/admin/form-8850/{$form->id}";
+
+        return implode("\n", $lineas);
+    }
+
+    /** Sólo los cuatro últimos dígitos, como ya se muestran en el perfil del alumno. */
+    private function maskedSsn(?string $ssn): string
+    {
+        $digitos = preg_replace('/\D/', '', (string) $ssn);
+
+        return strlen((string) $digitos) >= 4
+            ? '***-**-'.substr((string) $digitos, -4)
+            : '(not provided)';
     }
 }

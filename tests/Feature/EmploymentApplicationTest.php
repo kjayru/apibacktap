@@ -44,7 +44,7 @@ class EmploymentApplicationTest extends TestCase
             'socialnumber' => '123456789',
             'placebirth' => 'San Antonio',
             'appliedpay' => 'Security Officer',
-            'whichshift' => '1',
+            'shifts' => ['Morning', 'Weekends'],
             'citizen' => 'yes',
             // 'authorized' no se manda: sólo aplica si no es ciudadano.
             'worked' => 'no',
@@ -78,6 +78,63 @@ class EmploymentApplicationTest extends TestCase
         $archivo = Archivo::firstOrFail();
 
         $this->assertSame('licencia de conducir.pdf', $archivo->original_name);
+    }
+
+    /**
+     * El aspirante puede marcar varios turnos (#1888). Antes sólo cabía uno, y quien
+     * estaba disponible mañana y fin de semana tenía que elegir.
+     */
+    public function test_an_applicant_can_choose_several_shifts(): void
+    {
+        $this->postJson('/api/v1/employment', $this->solicitud())->assertCreated();
+
+        $guardado = \App\Models\Information::first()->whichshift;
+
+        $this->assertSame(['Morning', 'Weekends'], unserialize($guardado, ['allowed_classes' => false]));
+        $this->assertSame(
+            'Morning, Weekends',
+            \App\Filament\Resources\Information\Schemas\InformationInfolist::appliedShifts($guardado),
+        );
+    }
+
+    /**
+     * Las 1 138 solicitudes anteriores guardaron el turno como texto suelto y no se
+     * tocaron: tienen que seguir leyéndose tal cual en la ficha y en la impresión.
+     */
+    public function test_older_applications_keep_showing_their_single_shift(): void
+    {
+        $this->assertSame(
+            '1st Shift',
+            \App\Filament\Resources\Information\Schemas\InformationInfolist::appliedShifts('1st Shift'),
+        );
+    }
+
+    /** El cuerpo mínimo de una solicitud válida, el mismo que usa la primera prueba. */
+    private function solicitud(): array
+    {
+        return [
+            'lastname' => 'Prueba',
+            'firstname' => 'QA',
+            'mi' => 'X',
+            'date' => '2026-10-08',
+            'address' => '123 Test St',
+            'city' => 'San Antonio',
+            'state' => 'TX',
+            'zipcode' => '78216',
+            'phone' => '2103991116',
+            'email' => 'qa@example.com',
+            'birthday' => '1990-05-10',
+            'socialnumber' => '123456789',
+            'placebirth' => 'San Antonio',
+            'appliedpay' => 'Security Officer',
+            'shifts' => ['Morning', 'Weekends'],
+            'citizen' => 'yes',
+            // 'authorized' no se manda: sólo aplica si no es ciudadano.
+            'worked' => 'no',
+            'convicted' => 'no',
+            'indictment' => 'no',
+            'days' => ['2', '3'],
+        ];
     }
 
     private function createLegacyTables(): void
