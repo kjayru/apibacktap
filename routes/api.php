@@ -31,6 +31,8 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/home/posts', [PublicSiteController::class, 'homePosts']);
     Route::get('/home/categories', [PublicSiteController::class, 'homeCategories']);
     Route::get('/services', [PublicSiteController::class, 'services']);
+    // Ajustes globales que el administrador edita en el panel.
+    Route::get('/settings', [PublicSiteController::class, 'settings']);
     Route::get('/industries', [PublicSiteController::class, 'industries']);
     Route::get('/industries/{categorySlug}', [PublicSiteController::class, 'industriesByCategory']);
     Route::get('/industries/{categorySlug}/{industrySlug}', [PublicSiteController::class, 'industryDetail']);

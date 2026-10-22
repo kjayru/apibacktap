@@ -17,6 +17,7 @@ use App\Models\Information;
 use App\Models\Military;
 use App\Models\Post;
 use App\Models\Reference;
+use App\Models\SiteSetting;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -74,6 +75,45 @@ class PublicSiteController extends Controller
             ['title' => 'Security Patrol', 'slug' => 'security-patrol'],
             ['title' => 'Personal Protection Officers', 'slug' => 'personal-protection-officers'],
             ['title' => 'Off-Duty Police Security and Traffic Control', 'slug' => 'off-duty-police-security-and-traffic-control'],
+        ]);
+    }
+
+    /**
+     * Los ajustes globales que el administrador edita en el panel: analítica, SEO común y
+     * datos de la empresa. El sitio los pide al arrancar, de modo que un cambio guardado
+     * en el panel se ve en la siguiente visita sin volver a compilar.
+     *
+     * Los metadatos que ya están escritos dentro del HTML generado sólo se actualizan al
+     * publicar el sitio; eso afecta a lo que leen los buscadores, no al visitante.
+     */
+    public function settings(): JsonResponse
+    {
+        $settings = SiteSetting::current();
+
+        return $this->ok([
+            'analytics' => [
+                'google_ads_id' => $settings->google_ads_id,
+                'google_ads_conversion_label' => $settings->google_ads_conversion_label,
+                'ga4_measurement_id' => $settings->ga4_measurement_id,
+            ],
+            'seo' => [
+                'site_name' => $settings->site_name,
+                'default_meta_description' => $settings->default_meta_description,
+                'default_share_image' => $this->assetUrl($settings->default_share_image),
+                'google_site_verification' => $settings->google_site_verification,
+            ],
+            'company' => [
+                'legal_name' => $settings->legal_name,
+                'phone' => $settings->phone,
+                'email' => $settings->email,
+                'street_address' => $settings->street_address,
+                'locality' => $settings->locality,
+                'region' => $settings->region,
+                'postal_code' => $settings->postal_code,
+                'country' => $settings->country,
+                'psp_license' => $settings->psp_license,
+                'psp_academy_license' => $settings->psp_academy_license,
+            ],
         ]);
     }
 
