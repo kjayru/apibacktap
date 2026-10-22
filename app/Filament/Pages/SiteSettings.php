@@ -84,7 +84,7 @@ class SiteSettings extends Page
                     ->columns(2),
 
                 Section::make('SEO')
-                    ->description('Used where a page does not set its own. Search engines pick these up the next time the site is published.')
+                    ->description('Used where a page does not set its own. Visitors see changes right away; the HTML that search engines read is updated the next time the site is published.')
                     ->schema([
                         TextInput::make('site_name')
                             ->label('Site name')
