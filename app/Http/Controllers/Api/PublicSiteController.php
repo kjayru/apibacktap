@@ -89,6 +89,7 @@ class PublicSiteController extends Controller
             'card_url' => $this->assetUrl($industry->card),
             'banner_url' => $this->assetUrl($industry->banner),
             'category' => $industry->Category ? $this->transformCategory($industry->Category) : null,
+            'updated_at' => optional($industry->updated_at)->toISOString(),
         ])->values());
     }
 
@@ -138,6 +139,7 @@ class PublicSiteController extends Controller
             'end_date' => $event->end_date,
             'start_hour' => $event->start_hour,
             'formatted_date' => $event->start_date ? Carbon::parse($event->start_date)->format('M d, Y') : null,
+            'updated_at' => optional($event->updated_at)->toISOString(),
         ])->values());
     }
 
@@ -161,6 +163,7 @@ class PublicSiteController extends Controller
             'banner_image_url' => $this->assetUrl($post->banner),
             'published_at' => optional($post->created_at)->toISOString(),
             'formatted_date' => optional($post->created_at)->format('M d, Y'),
+            'updated_at' => optional($post->updated_at)->toISOString(),
             'related_posts' => $related->map(fn (Post $relatedPost) => $this->transformPostCard($relatedPost))->values(),
         ]);
     }
@@ -425,6 +428,7 @@ class PublicSiteController extends Controller
             'banner_image_url' => $this->assetUrl($post->banner),
             'published_at' => optional($post->created_at)->toISOString(),
             'formatted_date' => optional($post->created_at)->format('M d, Y'),
+            'updated_at' => optional($post->updated_at)->toISOString(),
         ];
     }
 
@@ -439,6 +443,9 @@ class PublicSiteController extends Controller
             'price' => $course->precio !== null ? (float) $course->precio : null,
             'level' => $course->nivel,
             'chapters_count' => $course->capitulos !== null ? (int) $course->capitulos : null,
+            // Fecha de la última edición. La necesita el sitemap para decirle a Google qué
+            // ha cambiado desde su última visita; sin ella tendría que rastrearlo todo.
+            'updated_at' => optional($course->updated_at)->toISOString(),
         ];
     }
 
